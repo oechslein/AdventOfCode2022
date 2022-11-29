@@ -1,0 +1,22 @@
+[package]
+name = "day01"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+itertools = "0.10.1"       # Extra iterator adaptors, iterator methods, free functions, and macros.
+# lazy_static = "1.4.0"      # A macro for declaring lazily evaluated statics in Rust.
+# rand = "0.8.4"             # Random number generators and other randomness functionality.
+# regex = "1.5.4"            # An implementation of regular expressions for Rust. This implementation uses finite automata and g…
+# 
+# num-complex = "0.4.0"      # complex numbers
+# coord2d = "0.2.7"          # rust lib for coordinate in 2d system
+# ndarray = "0.15.4"         # n dimensional arrays
+# ndarray-linalg = "0.14.1"  # lin algo for ndarray
+# ndarray-npy = "0.8.1"      # statistics for ndarray
+# 
+# image = "0.23.14"          # image processing
+# serde = "1.0.130"          # A generic serialization/deserialization framework
+# petgraph = "0.6.0"         # Graph data structure library. Provides graph types and graph algorithms.
