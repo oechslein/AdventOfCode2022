@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+derive_builder = "0.12.0"
+
 #cached = "0.26.2"          # Caching structures and simplified function memoization
 itertools = "0.10.1"       # Extra iterator adaptors, iterator methods, free functions, and macros.
 array2d = "0.2.1"
@@ -17,14 +19,14 @@ array2d = "0.2.1"
 #petgraph = "0.6.0"         # Graph data structure library. Provides graph types and graph algorithms.
 #bitvec = "0.22.3"
 
-#num-traits = "0.2"
-#num-derive = "0.3.3"
+#num = "0.4"
+num-traits = "0.2"
+num-derive = "0.3.3"
 
 #ndarray = "0.15.4"
-#num = "0.4"
 
 #regex = "1.5.4"            # An implementation of regular expressions for Rust. This implementation uses finite automata and g…
-#rand = "0.8.4"             # Random number generators and other randomness functionality.
+rand = "0.8.4"             # Random number generators and other randomness functionality.
 
 #num-complex = "0.4.0"      # complex numbers
 #coord2d = "0.2.7"          # rust lib for coordinate in 2d system
