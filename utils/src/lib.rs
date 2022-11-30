@@ -2,15 +2,27 @@ use std::fmt::Debug;
 use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 use std::time::Instant;
+
+fn correct_folder(file_name: &str) -> PathBuf {
+    // Allows cargo run to be called in dayXY and in root folder
+    let mut file_path = PathBuf::from(file_name);
+    if !file_path.exists() {
+        if let Some(file_name) = file_path.file_name() {
+            file_path = PathBuf::from(file_name);
+        }
+    }
+    file_path
+}
 
 /// Reads a file and return its content as a string
 pub fn file_to_string(file_name: &str) -> String {
-    fs::read_to_string(file_name).unwrap()
+    fs::read_to_string(correct_folder(file_name)).unwrap()
 }
 
-pub fn file_to_lines(file_name: &str) -> impl Iterator<Item = String> + '_ {
-    BufReader::new(File::open(file_name).unwrap())
+pub fn file_to_lines(file_name: &str) -> impl Iterator<Item = String> {
+    BufReader::new(File::open(correct_folder(file_name)).unwrap())
         .lines()
         .map(|line| line.unwrap())
 }

@@ -1,14 +1,10 @@
-use std::collections::HashSet;
 use std::mem::{replace, swap};
 
 use itertools::Itertools;
 use num_traits::Num;
 
 use super::grid_iteration;
-use super::{
-    grid_iteration::{Neighborhood, Topology},
-    grid_types::{CellIndexCoorType, CellIndexType},
-};
+use super::grid_types::{CellIndexCoorType, CellIndexType, Neighborhood, Topology};
 
 #[derive(Builder, Clone, PartialEq, Debug)]
 pub struct GridArray<T: Num + Clone + std::fmt::Display> {
@@ -31,6 +27,7 @@ impl<T: Num + Clone + std::fmt::Display> GridArrayBuilder<T> {
 }
 
 impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
+    #[allow(dead_code)]
     fn create_data_vec(&self) -> Vec<T> {
         vec![T::zero(); self.width * self.height]
     }
@@ -58,6 +55,22 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
     fn index_to_vec_index(&self, x: usize, y: usize) -> usize {
         assert!(self.check_index(x, y));
         GridArray::<T>::_index_to_vec_index(x, y, self.width)
+    }
+
+    pub fn get_width(&self) -> usize {
+        self.width
+    }
+
+    pub fn get_height(&self) -> usize {
+        self.height
+    }
+
+    pub fn get_topology(&self) -> Topology {
+        self.topology
+    }
+
+    pub fn get_neighborhood(&self) -> Neighborhood {
+        self.neighborhood
     }
 
     pub fn get(&self, x: CellIndexCoorType, y: CellIndexCoorType) -> Option<&T> {

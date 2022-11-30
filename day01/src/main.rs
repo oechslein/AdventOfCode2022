@@ -33,16 +33,17 @@ use array2d::Array2D;
 
 use rand::prelude::*;
 
-mod utils;
-mod grid;
-
+use grid::grid_array::*;
+use grid::grid_iteration::*;
+use grid::grid_types::*;
+use utils;
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2
 /// AOC
 fn main() {
-    utils::with_measure("Part 1", || solve_part1("input.txt"));
-    utils::with_measure("Part 2", || solve_part2("input.txt"));
+    utils::with_measure("Part 1", || solve_part1("day01/input.txt"));
+    utils::with_measure("Part 2", || solve_part2("day01/input.txt"));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

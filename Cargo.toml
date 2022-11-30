@@ -1,0 +1,9 @@
+[workspace]
+
+members = [
+    "day01",
+]
+
+[profile.release]
+codegen-units=1
+lto="fat"
