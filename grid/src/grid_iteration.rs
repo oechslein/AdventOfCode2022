@@ -1,14 +1,4 @@
-//! A library for manipulating 2d grids
-//!
-//! Grids are given as vecs of rows which are vecs of cells
-
-#![deny(clippy::all, clippy::pedantic)]
-#![allow(
-    clippy::enum_glob_use,
-    clippy::many_single_char_names,
-    clippy::must_use_candidate
-)]
-#![forbid(missing_docs)]
+//! Manipulating 2d grids
 
 use super::grid_types::{
     CellIndexCoorType, CellIndexType, Direction, Direction::*, Neighborhood, Neighborhood::*,

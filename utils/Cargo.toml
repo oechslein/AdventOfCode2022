@@ -6,6 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-#itertools = "0.10.1"       # Extra iterator adaptors, iterator methods, free functions, and macros.
+itertools = "0.10.1"       # Extra iterator adaptors, iterator methods, free functions, and macros.
 #num-traits = "0.2"
 #num-derive = "0.3.3"

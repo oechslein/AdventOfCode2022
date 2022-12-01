@@ -1,3 +1,5 @@
+//! Grid based on a vector
+
 use std::mem::{replace, swap};
 
 use itertools::Itertools;
@@ -6,8 +8,11 @@ use num_traits::Num;
 use super::grid_iteration;
 use super::grid_types::{CellIndexCoorType, CellIndexType, Neighborhood, Topology};
 
+/// GridArray
+#[allow(missing_docs)]
 #[derive(Builder, Clone, PartialEq, Debug)]
 pub struct GridArray<T: Num + Clone + std::fmt::Display> {
+    /// width of the grid
     width: CellIndexCoorType,
     height: CellIndexCoorType,
 
@@ -19,6 +24,8 @@ pub struct GridArray<T: Num + Clone + std::fmt::Display> {
     #[builder(setter(skip), default = "self.create_data_vec()")]
     _data: Vec<T>,
 }
+
+
 
 impl<T: Num + Clone + std::fmt::Display> GridArrayBuilder<T> {
     fn create_data_vec(&self) -> Vec<T> {
@@ -57,22 +64,27 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         GridArray::<T>::_index_to_vec_index(x, y, self.width)
     }
 
+    /// get_width
     pub fn get_width(&self) -> usize {
         self.width
     }
 
+    /// get_height
     pub fn get_height(&self) -> usize {
         self.height
     }
 
+    /// get_topology
     pub fn get_topology(&self) -> Topology {
         self.topology
     }
 
+    /// get_neighborhood
     pub fn get_neighborhood(&self) -> Neighborhood {
         self.neighborhood
     }
 
+    /// get reference to element on x, y
     pub fn get(&self, x: CellIndexCoorType, y: CellIndexCoorType) -> Option<&T> {
         if self.check_index(x, y) {
             Some(&self._data[self.index_to_vec_index(x, y)])
@@ -85,6 +97,7 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         &self._data[self.index_to_vec_index(x, y)]
     }
 
+    /// get mutable reference element on x, y
     pub fn get_mut(&mut self, x: CellIndexCoorType, y: CellIndexCoorType) -> Option<&mut T> {
         if self.check_index(x, y) {
             let vec_index = self.index_to_vec_index(x, y);
@@ -94,16 +107,19 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         }
     }
 
+    /// set new element on x, y and return old element
     pub fn set(&mut self, x: CellIndexCoorType, y: CellIndexCoorType, new_value: T) -> T {
         assert!(self.check_index(x, y));
         let vec_index = self.index_to_vec_index(x, y);
         replace(&mut self._data[vec_index], new_value)
     }
 
+    /// return all indexes
     pub fn all_indexes(&self) -> impl Iterator<Item = CellIndexType> {
         grid_iteration::all_cells(self.width, self.height)
     }
 
+    /// return all neighbor indexes (based on topology and neighborhood)
     pub fn neighborhood_cell_indexes(
         &self,
         x: CellIndexCoorType,
@@ -127,10 +143,12 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
 
     // map_indexes_to_cells_mut not possible to implement (multiple borrows of self_data)
 
+    /// return all elements
     pub fn all_cells(&self) -> impl Iterator<Item = (CellIndexCoorType, CellIndexCoorType, &T)> {
         self.map_indexes_to_cells(self.all_indexes())
     }
 
+    /// return all neighbor elements (based on topology and neighborhood)
     pub fn neighborhood_cells(
         &self,
         x: CellIndexCoorType,
@@ -160,6 +178,7 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
     }
     */
 
+    /// Print grid
     pub fn print(&self) {
         for y in 0..self.height {
             for x in 0..self.width {
@@ -183,6 +202,7 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         }
     }
 
+    /// flip_horizontal
     pub fn flip_horizontal(&mut self) {
         for x in 0..self.width / 2 {
             for y in 0..self.height {
@@ -191,6 +211,7 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         }
     }
 
+    /// flip_vertical
     pub fn flip_vertical(&mut self) {
         for y in 0..self.height / 2 {
             for x in 0..self.width {
@@ -210,10 +231,12 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         self._data = new_data;
     }
 
+    /// transpose
     pub fn transpose(&mut self) {
         self._transform((0..self.width).cartesian_product(0..self.height), true);
     }
 
+    /// rotate_cw
     pub fn rotate_cw(&mut self) {
         // rotate clockwise by 90°
         self._transform(
@@ -222,6 +245,7 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         );
     }
 
+    /// rotate_ccw
     pub fn rotate_ccw(&mut self) {
         // rotate counter clockwise by 90°
         self._transform(

@@ -1,4 +1,8 @@
+//! Types grids
+
+/// CellIndexCoorType
 pub type CellIndexCoorType = usize;
+/// CellIndexType
 pub type CellIndexType = (CellIndexCoorType, CellIndexCoorType);
 
 /// A type of topology
