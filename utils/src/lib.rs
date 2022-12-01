@@ -16,7 +16,7 @@ use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::time::Instant;
 
-use itertools::Itertools;
+//use itertools::Itertools;
 
 /// Allows cargo run to be called in dayXY and in root folder
 fn correct_folder(file_name: &str) -> PathBuf {
