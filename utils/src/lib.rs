@@ -49,7 +49,7 @@ pub fn convert_str_iter<'a, T>(
 ) -> impl Iterator<Item = T> + 'a
 where
     T: std::str::FromStr,
-    <T>::Err: Debug, // Not sure why this is needed
+    <T>::Err: Debug,
 {
     input.map(|x| str_to(x))
 }
@@ -58,14 +58,13 @@ where
 pub fn str_to<T>(input: &str) -> T
 where
     T: std::str::FromStr,
-    <T>::Err: Debug, // Not sure why this is needed
+    <T>::Err: Debug,
 {
     str::parse::<T>(input).unwrap()
 }
 
 /// Converts item back from Reverse(item)
-pub fn unreverse<T>(reversed_item: Reverse<T>) -> T
-{
+pub fn unreverse<T>(reversed_item: Reverse<T>) -> T {
     reversed_item.0
 }
 
@@ -73,7 +72,7 @@ pub fn unreverse<T>(reversed_item: Reverse<T>) -> T
 pub fn split_by_empty_lines<'a, T>(contents: &'a str) -> impl Iterator<Item = T> + 'a
 where
     T: std::str::FromStr,
-    <T>::Err: Debug, // Not sure why this is needed
+    <T>::Err: Debug,
 {
     convert_str_iter::<T>(contents.split("\n\n"))
 }
@@ -82,7 +81,7 @@ where
 pub fn split_by_newline<'a, T>(contents: &'a str) -> impl Iterator<Item = T> + 'a
 where
     T: std::str::FromStr,
-    <T>::Err: Debug, // Not sure why this is needed
+    <T>::Err: Debug,
 {
     convert_str_iter::<T>(contents.lines())
 }
@@ -91,7 +90,7 @@ where
 pub fn parse_input_items<T>(contents: String) -> Vec<T>
 where
     T: std::str::FromStr,
-    <T>::Err: Debug, // Not sure why this is needed
+    <T>::Err: Debug,
 {
     contents
         .split('\n')
@@ -129,30 +128,3 @@ where T: Ord {
 }
 */
 
-/// Returns the k smallest items from iterator
-pub fn k_smallest<T>(input: impl Iterator<Item = T>, k: usize) -> impl Iterator<Item = T>
-where
-    T: Ord,
-{
-    input.k_smallest(k)
-}
-
-/// Returns the k highest items from iterator
-pub fn k_largest<T>(input: impl Iterator<Item = T>, k: usize) -> impl Iterator<Item = T>
-where
-    T: Ord,
-{
-    k_smallest(input.map(Reverse), k).map(|rev| rev.0)
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_k_largest() {
-        let x = k_largest(0..10, 2);
-        assert_eq!(x.collect::<Vec<_>>(), vec![9, 8]);
-    }
-}
