@@ -51,7 +51,22 @@ where
     T: std::str::FromStr,
     <T>::Err: Debug, // Not sure why this is needed
 {
-    input.map(|x| str::parse::<T>(x).unwrap())
+    input.map(|x| str_to(x))
+}
+
+/// Converts an str to a type (and unwraps it)
+pub fn str_to<T>(input: &str) -> T
+where
+    T: std::str::FromStr,
+    <T>::Err: Debug, // Not sure why this is needed
+{
+    str::parse::<T>(input).unwrap()
+}
+
+/// Converts item back from Reverse(item)
+pub fn unreverse<T>(reversed_item: Reverse<T>) -> T
+{
+    reversed_item.0
 }
 
 /// Splits given String split into chunks separated by empty lines

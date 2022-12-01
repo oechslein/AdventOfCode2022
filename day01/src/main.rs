@@ -35,22 +35,26 @@ fn main() {
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn solve_part1(file_name: &str) -> usize {
+fn sum_of_nums(chunks_str: &str) -> usize {
+    chunks_str.lines().map(utils::str_to::<usize>).sum()
+}
+
+pub fn solve_part1(file_name: &str) -> usize {
     utils::file_to_string(file_name)
         .split("\n\n")
-        .map(|chunks_str| utils::convert_str_iter::<usize>(chunks_str.lines()).sum())
+        .map(|chunks_str| sum_of_nums(chunks_str))
         .max()
         .unwrap()
 }
 
-fn solve_part2(file_name: &str) -> usize {
-    let file_as_string = utils::file_to_string(file_name);
-    utils::convert_str_iter::<String>((&file_as_string).split("\n\n"))
-        .map(|chunks_str| utils::convert_str_iter::<usize>(chunks_str.lines()).sum::<usize>())
+pub fn solve_part2(file_name: &str) -> usize {
+    utils::file_to_string(file_name)
+        .split("\n\n")
+        .map(|chunks_str| sum_of_nums(chunks_str))
         .map(Reverse) // we want the largest but we only have k_smallest
         .k_smallest(3)
-        .map(|x| x.0) // Since elements are Reverse(items) we have to take .0
-        .sum::<usize>()
+        .map(utils::unreverse) // Since elements are Reverse(items) we have to take .0
+        .sum()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
