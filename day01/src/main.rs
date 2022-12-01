@@ -1,41 +1,28 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 #![allow(unused_must_use)]
-#![feature(generators, generator_trait)]
 #![feature(test)]
-#![feature(drain_filter)]
-#![feature(const_option)]
-#![feature(type_alias_impl_trait)]
-#![feature(hash_drain_filter)]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::enum_glob_use,
+    clippy::many_single_char_names,
+    clippy::must_use_candidate
+)]
 
-#[macro_use]
-extern crate derive_builder;
-extern crate num_derive;
+//#![feature(generators, generator_trait)]
+//#![feature(drain_filter)]
+//#![feature(const_option)]
+//#![feature(type_alias_impl_trait)]
+//#![feature(hash_drain_filter)]
 
 extern crate test;
 
-use std::process::ExitCode;
-
-use itertools::{cloned, Itertools};
-
-use core::num;
 use std::cmp::Reverse;
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::fmt::{Debug, Display};
-use std::io::BufRead;
-use std::ops::{Add, RangeFrom, SubAssign};
-use std::str::FromStr;
-use std::{error, mem};
 
-use std::fs;
-
-use array2d::Array2D;
-
-use rand::prelude::*;
-
-use grid::grid_array::*;
-use grid::grid_iteration::*;
-use grid::grid_types::*;
+//use grid::grid_array::*;
+//#use grid::grid_iteration::*;
+//use grid::grid_types::*;
+use itertools::Itertools;
 use utils;
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -48,78 +35,22 @@ fn main() {
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn solve_part1(file_name: &str) -> i64 {
-    let elements: Vec<Vec<char>> = utils::file_to_lines(file_name)
-        .map(|line| line.chars().collect_vec())
-        .collect_vec();
-
-    let mut a = Array2D::from_columns(&elements);
-    let mut step = 1;
-
-    if cfg!(debug_assertions) {
-        print_array(&a);
-        println!();
-    }
-
-    loop {
-        let new_a = perform_step(&a);
-
-        if a == new_a {
-            break;
-        }
-        a = new_a;
-        step += 1;
-    }
-    if cfg!(debug_assertions) {
-        print_array(&a);
-        println!();
-    }
-
-    step
+fn solve_part1(file_name: &str) -> usize {
+    utils::file_to_string(file_name)
+        .split("\n\n")
+        .map(|chunks_str| utils::convert_str_iter::<usize>(chunks_str.lines()).sum())
+        .max()
+        .unwrap()
 }
 
-fn perform_step(a: &Array2D<char>) -> Array2D<char> {
-    let mut new_a = a.clone();
-    for y in 0..a.row_len() {
-        for x in 0..a.column_len() {
-            if a[(x, y)] == '>' && a[((x + 1) % a.column_len(), y)] == '.' {
-                new_a[((x + 1) % a.column_len(), y)] = '>';
-                new_a[(x, y)] = '.';
-            }
-        }
-    }
-    let mut new_a2 = new_a.clone();
-    for x in 0..a.column_len() {
-        for y in 0..a.row_len() {
-            if new_a[(x, y)] == 'v' && new_a[(x, (y + 1) % a.row_len())] == '.' {
-                new_a2[(x, (y + 1) % a.row_len())] = 'v';
-                new_a2[(x, y)] = '.';
-            }
-        }
-    }
-
-    if cfg!(debug_assertions) {
-        print_array(a);
-        println!();
-        println!();
-    }
-
-    new_a2
-}
-
-fn print_array(a: &Array2D<char>) {
-    assert_eq!(a.row_len(), a.row_len());
-    assert_eq!(a.column_len(), a.column_len());
-    for y in 0..a.row_len() {
-        for x in 0..a.column_len() {
-            print!("{}", a[(x, y)]);
-        }
-        println!();
-    }
-}
-
-fn solve_part2(file_name: &str) -> i64 {
-    solve_part1(file_name)
+fn solve_part2(file_name: &str) -> usize {
+    let file_as_string = utils::file_to_string(file_name);
+    utils::convert_str_iter::<String>((&file_as_string).split("\n\n"))
+        .map(|chunks_str| utils::convert_str_iter::<usize>(chunks_str.lines()).sum::<usize>())
+        .map(Reverse) // we want the largest but we only have k_smallest
+        .k_smallest(3)
+        .map(|x| x.0) // Since elements are Reverse(items) we have to take .0
+        .sum::<usize>()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -129,26 +60,23 @@ mod tests {
     use test::Bencher;
 
     #[test]
-    fn test0() {}
-
-    #[test]
     fn test1() {
-        assert_eq!(solve_part1("test.txt"), 58);
+        assert_eq!(solve_part1("test.txt"), 24000);
     }
 
     #[test]
     fn verify1() {
-        assert_eq!(solve_part1("input.txt"), 386);
+        assert_eq!(solve_part1("input.txt"), 72602);
     }
 
     #[test]
     fn test2() {
-        assert_eq!(solve_part2("test2.txt"), 58);
+        assert_eq!(solve_part2("test.txt"), 45000);
     }
 
     #[test]
     fn verify2() {
-        assert_eq!(solve_part2("input.txt"), 386);
+        assert_eq!(solve_part2("input.txt"), 207410);
     }
 
     #[bench]
