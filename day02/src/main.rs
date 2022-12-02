@@ -27,46 +27,62 @@ fn main() {
 ////////////////////////////////////////////////////////////////////////////////////
 
 pub fn solve_part1(file_name: &str) -> usize {
-    parse_input_part_1(&utils::file_to_string(file_name))
-        .map(player_score)
+    parse_input_part(&utils::file_to_string(file_name))
+        .into_iter()
+        .map(Move::player_score)
         .sum()
 }
 
 pub fn solve_part2(file_name: &str) -> usize {
-    let input = utils::file_to_string(file_name);
-    let input = parse_input_part_2(&input);
-    input.map(add_needed_move).map(player_score).sum()
+    parse_input_part(&utils::file_to_string(file_name))
+        .into_iter()
+        .map(Move::convert_to_needed_move)
+        .map(Move::fill_round_outcome)
+        .map(|x| Move::player_score(x))
+        .sum()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn parse_input_part_1<'a>(input: &'a String) -> impl Iterator<Item = (Move, Move)> + 'a {
-    input.split('\n').filter_map(|line| {
-        line.trim()
-            .split(' ')
-            .map(|x| Move::from_str(x).unwrap())
-            .collect_tuple::<(_, _)>()
-    })
-}
-
-fn parse_input_part_2<'a>(input: &'a String) -> impl Iterator<Item = (Move, RoundOutcome)> + 'a {
-    input.split('\n').filter_map(|line| {
-        line.trim()
-            .split(' ')
-            .collect_tuple::<(_, _)>()
-            .and_then(|(c1, c2)| Some((Move::from_str(c1).unwrap(), RoundOutcome::from_str(c2).unwrap())))
-    })
+fn parse_input_part(input: &String) -> Vec<Move> {
+    input
+        .split('\n')
+        .filter_map(|line| Move::from_str(line).ok())
+        .collect_vec()
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-enum Move {
+struct Move {
+    opponent_move: MoveEnum,
+    player_move: Option<MoveEnum>,
+    player_outcome: Option<RoundOutcome>,
+}
+
+impl FromStr for Move {
+    type Err = String;
+
+    fn from_str(line: &str) -> Result<Self, Self::Err> {
+        if let Some((first, second)) = line.trim().split(' ').collect_tuple::<(_, _)>() {
+            Ok(Move {
+                opponent_move: MoveEnum::from_str(first).unwrap(),
+                player_move: MoveEnum::from_str(second).ok(),
+                player_outcome: RoundOutcome::from_str(second).ok(),
+            })
+        } else {
+            Err(line.to_string())
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum MoveEnum {
     ROCK,
     SCISSORS,
     PAPER,
 }
-use Move::*;
+use MoveEnum::*;
 
-impl FromStr for Move {
+impl FromStr for MoveEnum {
     type Err = String;
 
     fn from_str(x: &str) -> Result<Self, Self::Err> {
@@ -109,52 +125,64 @@ impl FromStr for RoundOutcome {
     }
 }
 
-fn last_player_wins_p((opponent_move, own_move): (Move, Move)) -> bool {
-    match own_move {
-        ROCK => opponent_move == SCISSORS,
-        SCISSORS => opponent_move == PAPER,
-        PAPER => opponent_move == ROCK,
+impl Move {
+    fn last_player_wins_p(&self) -> bool {
+        match self.player_move {
+            Some(ROCK) => self.opponent_move == SCISSORS,
+            Some(SCISSORS) => self.opponent_move == PAPER,
+            Some(PAPER) => self.opponent_move == ROCK,
+            None => todo!(),
+        }
     }
-}
 
-fn round_outcome((opponent_move, own_move): (Move, Move)) -> RoundOutcome {
-    if opponent_move == own_move {
-        DRAW
-    } else if last_player_wins_p((opponent_move, own_move)) {
-        WIN
-    } else {
-        assert!(last_player_wins_p((own_move, opponent_move)));
-        LOSS
+    fn fill_round_outcome(mut self) -> Self {
+        self.player_outcome = Some({
+            if self.opponent_move == self.player_move.unwrap() {
+                DRAW
+            } else if self.last_player_wins_p() {
+                WIN
+            } else {
+                LOSS
+            }
+        });
+        self
     }
-}
 
-fn player_score((opponent_move, own_move): (Move, Move)) -> usize {
-    (match own_move {
-        ROCK => 1,
-        PAPER => 2,
-        SCISSORS => 3,
-    }) + (match round_outcome((opponent_move, own_move)) {
-        LOSS => 0,
-        DRAW => 3,
-        WIN => 6,
-    })
-}
-
-fn add_needed_move((opponent_move, outcome): (Move, RoundOutcome)) -> (Move, Move) {
-    (
-        opponent_move,
-        match (outcome, opponent_move) {
-            (DRAW, ROCK) => ROCK,
-            (DRAW, SCISSORS) => SCISSORS,
-            (DRAW, PAPER) => PAPER,
+    fn convert_to_needed_move(mut self) -> Self {
+        self.player_move = Some(match (self.player_outcome.unwrap(), self.opponent_move) {
+            (DRAW, _) => self.opponent_move,
             (WIN, ROCK) => PAPER,
             (WIN, SCISSORS) => ROCK,
             (WIN, PAPER) => SCISSORS,
             (LOSS, ROCK) => SCISSORS,
             (LOSS, SCISSORS) => PAPER,
             (LOSS, PAPER) => ROCK,
-        },
-    )
+        });
+        self
+    }
+
+    fn player_score(self) -> usize {
+        self.player_move.unwrap().move_score() + self.outcome_score()
+    }
+
+    fn outcome_score(&self) -> usize {
+        match self.player_outcome {
+            Some(LOSS) => 0,
+            Some(DRAW) => 3,
+            Some(WIN) => 6,
+            None => todo!(),
+        }
+    }
+}
+
+impl MoveEnum {
+    fn move_score(&self) -> usize {
+        match self {
+            ROCK => 1,
+            PAPER => 2,
+            SCISSORS => 3,
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
