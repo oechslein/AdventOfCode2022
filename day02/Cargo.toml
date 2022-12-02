@@ -10,6 +10,8 @@ edition = "2021"
 utils = { path = "../utils" }
 itertools = "0.10.1"       # Extra iterator adaptors, iterator methods, free functions, and macros.
 
+rayon = "1.6.0"
+
 #nom = "7.1.1" # Parser
 
 #derive_builder = "0.12.0"
