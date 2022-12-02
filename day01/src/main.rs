@@ -25,6 +25,64 @@ use std::cmp::Reverse;
 use itertools::Itertools;
 use utils;
 
+/*
+use nom::{
+    branch::alt,
+    bytes::complete::{tag, take_while_m_n},
+    character::complete::digit1,
+    character::complete::{newline, space0},
+    character::{is_digit, is_hex_digit, is_newline},
+    combinator::value,
+    combinator::{eof, map_res, recognize},
+    error::ParseError,
+    multi::many_till,
+    number::complete::i64,
+    number::Endianness,
+    sequence::delimited,
+    sequence::{terminated, tuple},
+    IResult,
+};
+
+/// A combinator that takes a parser `inner` and produces a parser that also consumes both leading and
+/// trailing whitespace, returning the output of `inner`.
+fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(
+    inner: F,
+) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+where
+    F: Fn(&'a str) -> IResult<&'a str, O, E>,
+{
+    delimited(space0, inner, space0)
+}
+
+fn my_u64(input: &str) -> IResult<&str, u64> {
+    map_res(recognize(digit1), str::parse)(input)
+}
+
+fn read_chunk(input: &str) -> IResult<&str, (Vec<u64>, &str)> {
+    many_till(terminated(ws(my_u64), newline), alt(tag("\n"), tag("\n")))(input)
+}
+
+fn read_all(input: &str) -> IResult<&str, (Vec<(Vec<u64>, &str)>, &str)> {
+    many_till(read_chunk, eof)(input)
+}
+
+
+    let v = read_all(
+        "1234
+    4321
+
+    1111
+    4444
+",
+    )
+    .unwrap();
+    println!("{:?}", v);
+
+
+
+*/
+
+
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2
 /// AOC
@@ -34,10 +92,6 @@ fn main() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-
-fn sum_of_nums(chunks_str: &str) -> usize {
-    chunks_str.lines().map(utils::str_to::<usize>).sum()
-}
 
 pub fn solve_part1(file_name: &str) -> usize {
     utils::file_to_string(file_name)
@@ -55,6 +109,12 @@ pub fn solve_part2(file_name: &str) -> usize {
         .k_smallest(3)
         .map(utils::unreverse) // Since elements are Reverse(items) we have to take .0
         .sum()
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+
+fn sum_of_nums(chunks_str: &str) -> usize {
+    chunks_str.lines().map(utils::str_to::<usize>).sum()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

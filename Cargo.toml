@@ -4,6 +4,7 @@ members = [
     "utils",
     "grid",
     "day01",
+    "day02",
 ]
 
 [profile.release]
