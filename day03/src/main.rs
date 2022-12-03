@@ -1,6 +1,6 @@
-#![allow(unused_imports)]
-#![allow(dead_code)]
-#![allow(unused_must_use)]
+//#![allow(unused_imports)]
+//#![allow(dead_code)]
+//#![allow(unused_must_use)]
 #![feature(test)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
@@ -9,7 +9,11 @@
     clippy::must_use_candidate
 )]
 
-use std::{cmp::Reverse, collections::HashSet, str::FromStr};
+use std::{
+    cmp::Reverse,
+    collections::HashSet,
+    str::{Chars, FromStr},
+};
 
 use itertools::Itertools;
 use utils::{self, str_to};
@@ -19,73 +23,69 @@ use utils::{self, str_to};
 /// AOC
 fn main() {
     utils::with_measure("Part 1", || solve_part1("day03/input.txt"));
-    utils::with_measure("Part 2", || solve_part2("day03/test.txt"));
+    utils::with_measure("Part 2", || solve_part2("day03/input.txt"));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-pub fn solve_part1(file_name: &str) -> usize {
-    parse_input_part_1(&utils::file_to_string(file_name)).map(sum_of_types_priority).sum()
+pub fn solve_part1(file_name: &str) -> u32 {
+    utils::file_to_string(file_name)
+        .split('\n')
+        .map(|line| split_into_half(line))
+        .map(|(compartment1, compartment2)| {
+            type_priority_iterators(vec![compartment1, compartment2])
+        })
+        .sum::<u32>()
 }
 
-pub fn solve_part2(file_name: &str) -> usize {
-    let input = utils::file_to_string(file_name);
-    for (rucksack1, rucksack2, rucksack3) in parse_input_part_2(&input) {
-        let rucksack1_set: HashSet<_> = HashSet::from_iter(rucksack1.iter());
-        let rucksack2_set: HashSet<_> = HashSet::from_iter(rucksack2.iter());
-        let rucksack3_set: HashSet<_> = HashSet::from_iter(rucksack3.iter());
+pub fn solve_part2(file_name: &str) -> u32 {
+    utils::file_to_string(file_name)
+        .split('\n')
+        .map(|line| line.chars())
+        .tuples::<(_, _, _)>()
+        .map(|(rucksack1, rucksack2, rucksack3)| {
+            type_priority_iterators(vec![rucksack1, rucksack2, rucksack3])
+        })
+        .sum()
+}
 
-        let common_1_2 = rucksack1_set.intersection(&rucksack2_set).map(|x| *x).collect::<HashSet<_>>();
-        let x = common_1_2.intersection(&rucksack3_set);
-        x.map(|x| type_priority(**x)).sum::<usize>();
-        println!("{:?}", x);    
+////////////////////////////////////////////////////////////////////////////////////
+
+fn split_into_half(line: &str) -> (Chars, Chars) {
+    (
+        line[0..line.len() / 2].chars(),
+        line[line.len() / 2..line.len()].chars(),
+    )
+}
+
+fn intersect_many<T: Eq + std::hash::Hash + Copy>(
+    iterators: Vec<impl Iterator<Item = T>>,
+) -> impl Iterator<Item = T> {
+    let mut x = iterators.into_iter();
+    let mut result: HashSet<_> = HashSet::from_iter(x.next().unwrap());
+    while let Some(next_vec) = x.next() {
+        let other = HashSet::from_iter(next_vec);
+        let intersection = result.intersection(&other);
+        result = HashSet::from_iter(intersection.copied());
     }
-    42
+    result.into_iter()
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-
-type Group = (RucksackPart2, RucksackPart2, RucksackPart2);
-type RucksackPart2 = Vec<char>;
-
-fn parse_input_part_2<'a>(
-    input: &'a String,
-) -> impl Iterator<Item = Group> + 'a {
-    input
-        .split('\n')
-        .map(|line| {
-                line.chars().collect_vec()
-        })
-        .tuples::<Group>()
+fn intersect_many_iter<T: Eq + std::hash::Hash + Copy>(
+    iterators: impl Iterator<Item = impl Iterator<Item = T>>,
+) -> impl Iterator<Item = T> {
+    let mut iterators = iterators;
+    let mut result: HashSet<_> = HashSet::from_iter(iterators.next().unwrap());
+    while let Some(next_vec) = iterators.next() {
+        let other = HashSet::from_iter(next_vec);
+        let intersection = result.intersection(&other);
+        result = HashSet::from_iter(intersection.copied());
+    }
+    result.into_iter()
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-
-type RucksackPart1 = (Compartment, Compartment);
-type Compartment = Vec<char>;
-
-fn parse_input_part_1<'a>(input: &'a String) -> impl Iterator<Item = RucksackPart1> + 'a {
-    input
-        .split('\n')
-        .map(|line| {
-            (
-                line[0..line.len() / 2].chars().collect_vec(),
-                line[line.len() / 2..line.len()].chars().collect_vec(),
-            )
-        })
-        .into_iter()
-}
-
-fn sum_of_types_priority((compart1, compart2): RucksackPart1) -> usize {
-    let compart1_set: HashSet<_> = HashSet::from_iter(compart1.iter());
-    let compart2_set: HashSet<_> = HashSet::from_iter(compart2.iter());
-    let common_parts = compart1_set.intersection(&compart2_set);
-    //println!("{:?},{:?}=>{:?}", compart1, compart2, common_parts.clone());
-    let sum_of_types_priority = common_parts
-        .into_iter()
-        .map(|x| type_priority(**x))
-        .sum::<u32>();
-    sum_of_types_priority as usize
+fn type_priority_iterators(iterators: Vec<impl Iterator<Item = char>>) -> u32 {
+    intersect_many(iterators).map(type_priority).sum::<u32>()
 }
 
 fn type_priority(x: char) -> u32 {
@@ -116,12 +116,12 @@ mod tests {
 
     #[test]
     fn test2() {
-        assert_eq!(solve_part2("test.txt"), 12);
+        assert_eq!(solve_part2("test.txt"), 70);
     }
 
     #[test]
     fn verify2() {
-        assert_eq!(solve_part2("input.txt"), 13187);
+        assert_eq!(solve_part2("input.txt"), 2497);
     }
 
     #[bench]
