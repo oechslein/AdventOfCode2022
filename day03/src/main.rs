@@ -9,14 +9,9 @@
     clippy::must_use_candidate
 )]
 
-use std::{
-    cmp::Reverse,
-    collections::HashSet,
-    str::{Chars, FromStr},
-};
+use std::{collections::HashSet, str::Chars};
 
 use itertools::Itertools;
-use utils::{self, str_to};
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2
@@ -71,6 +66,7 @@ fn intersect_many<T: Eq + std::hash::Hash + Copy>(
     result.into_iter()
 }
 
+/*
 fn intersect_many_iter<T: Eq + std::hash::Hash + Copy>(
     iterators: impl Iterator<Item = impl Iterator<Item = T>>,
 ) -> impl Iterator<Item = T> {
@@ -83,6 +79,7 @@ fn intersect_many_iter<T: Eq + std::hash::Hash + Copy>(
     }
     result.into_iter()
 }
+ */
 
 fn type_priority_iterators(iterators: Vec<impl Iterator<Item = char>>) -> u32 {
     intersect_many(iterators).map(type_priority).sum::<u32>()
