@@ -25,8 +25,6 @@ pub struct GridArray<T: Num + Clone + std::fmt::Display> {
     _data: Vec<T>,
 }
 
-
-
 impl<T: Num + Clone + std::fmt::Display> GridArrayBuilder<T> {
     fn create_data_vec(&self) -> Vec<T> {
         vec![T::zero(); self.width.unwrap() * self.height.unwrap()]

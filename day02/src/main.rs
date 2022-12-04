@@ -1,6 +1,6 @@
-#![allow(unused_imports)]
-#![allow(dead_code)]
-#![allow(unused_must_use)]
+//#![allow(unused_imports)]
+//#![allow(dead_code)]
+//#![allow(unused_must_use)]
 #![feature(test)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
@@ -9,12 +9,9 @@
     clippy::must_use_candidate
 )]
 
-use rayon::prelude::*;
-
-use std::{cmp::Reverse, str::FromStr};
+use std::str::FromStr;
 
 use itertools::Itertools;
-use utils::{self, str_to};
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2

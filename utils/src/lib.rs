@@ -18,6 +18,11 @@ use std::time::Instant;
 
 //use itertools::Itertools;
 
+/// debug println x
+pub fn printlnit<T: Debug>(x: &T) {
+    println!("{:?}", x);
+}
+
 /// Allows cargo run to be called in dayXY and in root folder
 fn correct_folder(file_name: &str) -> PathBuf {
     let mut file_path = PathBuf::from(file_name);
@@ -127,4 +132,3 @@ where T: Ord {
     h.into_iter().map(|rev| rev.0).rev()
 }
 */
-
