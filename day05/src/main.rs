@@ -34,21 +34,18 @@ pub fn solve_part2(file_name: &str) -> String {
 fn solve(file_name: &str, part1: bool) -> String {
     let (mut stack, moves) = parse(file_name);
     for (amount, from, to) in moves {
-        let mut interim_vec = Vec::with_capacity(amount);
-        for _ in 0..amount {
-            interim_vec.push(stack[from - 1].pop_front().unwrap());
-        }
+        let mut from_stack_values = stack[from - 1].drain(..amount).collect_vec();
         if !part1 {
-            interim_vec.reverse();
+            from_stack_values.reverse();
         }
 
-        for elem in interim_vec {
+        for elem in from_stack_values {
             stack[to - 1].push_front(elem);
         }
     }
     stack
-        .into_iter()
-        .map(|x| x.front().unwrap().clone())
+        .iter()
+        .map(|x| x.front().unwrap())
         .collect::<String>()
 }
 
