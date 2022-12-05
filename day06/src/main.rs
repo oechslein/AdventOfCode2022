@@ -1,6 +1,6 @@
-//#![allow(unused_imports)]
-//#![allow(dead_code)]
-//#![allow(unused_must_use)]
+#![allow(unused_imports)]
+#![allow(dead_code)]
+#![allow(unused_must_use)]
 #![feature(test)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
@@ -17,8 +17,8 @@ use itertools::Itertools;
 /// The main function prints out the results for part1 and part2
 /// AOC
 fn main() {
-    utils::with_measure("Part 1", || solve_part1("day05/test.txt"));
-    utils::with_measure("Part 2", || solve_part2("day05/test.txt"));
+    utils::with_measure("Part 1", || solve_part1("day06/test.txt"));
+    utils::with_measure("Part 2", || solve_part2("day06/test.txt"));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
