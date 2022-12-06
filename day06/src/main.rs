@@ -9,85 +9,40 @@
     clippy::must_use_candidate
 )]
 
-use std::collections::VecDeque;
-
 use itertools::Itertools;
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2
 /// AOC
 fn main() {
-    utils::with_measure("Part 1", || solve_part1("day06/test.txt"));
-    utils::with_measure("Part 2", || solve_part2("day06/test.txt"));
+    utils::with_measure("Part 1", || solve_part1("day06/input.txt"));
+    utils::with_measure("Part 2", || solve_part2("day06/input.txt"));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-pub fn solve_part1(file_name: &str) -> String {
-    solve(file_name, true)
+pub fn solve_part1(file_name: &str) -> usize {
+    solve(file_name, 4)
 }
 
-pub fn solve_part2(file_name: &str) -> String {
-    solve(file_name, false)
-}
-
-fn solve(file_name: &str, part1: bool) -> String {
-    let (mut stack, moves) = parse(file_name);
-    for (amount, from, to) in moves {
-        let mut from_stack_values = stack[from - 1].drain(..amount).collect_vec();
-        if !part1 {
-            from_stack_values.reverse();
-        }
-
-        for elem in from_stack_values {
-            stack[to - 1].push_front(elem);
-        }
-    }
-    stack
-        .iter()
-        .map(|x| x.front().unwrap())
-        .collect::<String>()
+pub fn solve_part2(file_name: &str) -> usize {
+    solve(file_name, 14)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn parse(file_name: &str) -> (Vec<VecDeque<char>>, Vec<(usize, usize, usize)>) {
-    let input = utils::file_to_string(file_name);
-    let (first_part, moves_part) = input.split_once("\n\n").unwrap();
-    (parse_filled_stacks(first_part), parse_moves(moves_part))
-}
-
-fn parse_moves(moves_part: &str) -> Vec<(usize, usize, usize)> {
-    let re = regex::Regex::new(r"move (?P<amount>\d+) from (?P<from>\d+) to (?P<to>\d+)").unwrap();
-    re.captures_iter(moves_part)
-        .map(|captures| {
-            captures
-                .iter()
-                .skip(1) // first result is full group
-                .map(|cap| utils::str_to::<usize>(cap.unwrap().as_str()))
-                .collect_tuple::<(_, _, _)>()
-                .unwrap()
-        })
+fn solve(file_name: &str, length_marker: usize) -> usize {
+    utils::file_to_string(file_name)
+        .chars()
         .collect_vec()
-}
-
-fn parse_filled_stacks(first_part: &str) -> Vec<VecDeque<char>> {
-    let first_part = first_part.lines().collect_vec();
-    let (first_part, middle_part) = first_part.split_at(first_part.len() - 1);
-    let amount_of_stacks = (middle_part[0].len() + 1) / 4;
-    let mut stack: Vec<VecDeque<char>> = (0..amount_of_stacks)
-        .map(|_| VecDeque::with_capacity(first_part.len()))
-        .collect_vec();
-
-    for line in first_part {
-        for (stack_index, mut part) in line.chars().chunks(4).into_iter().enumerate() {
-            if part.next().unwrap() == '[' {
-                stack[stack_index].push_back(part.next().unwrap());
-            }
-        }
-    }
-
-    stack
+        .windows(length_marker)
+        .enumerate()
+        //.inspect(|x| println!("{:?}", x))
+        .filter(|(_, window)| window.iter().all_unique())
+        .next()
+        .unwrap()
+        .0
+        + length_marker
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -100,22 +55,22 @@ mod tests {
 
     #[test]
     fn test1() {
-        assert_eq!(solve_part1("test.txt"), "CMZ");
+        assert_eq!(solve_part1("test.txt"), 7);
     }
 
     #[test]
     fn verify1() {
-        assert_eq!(solve_part1("input.txt"), "QMBMJDFTD");
+        assert_eq!(solve_part1("input.txt"), 1702);
     }
 
     #[test]
     fn test2() {
-        assert_eq!(solve_part2("test.txt"), "MCD");
+        assert_eq!(solve_part2("test.txt"), 19);
     }
 
     #[test]
     fn verify2() {
-        assert_eq!(solve_part2("input.txt"), "NBTVTJNFJ");
+        assert_eq!(solve_part2("input.txt"), 3559);
     }
 
     #[bench]
