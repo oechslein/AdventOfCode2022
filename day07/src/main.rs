@@ -10,7 +10,8 @@
 )]
 
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::VecDeque,
+    fmt::{Display, Formatter},
 };
 
 use itertools::Itertools;
@@ -26,93 +27,173 @@ fn main() {
 ////////////////////////////////////////////////////////////////////////////////////
 
 pub fn solve_part1(file_name: &str) -> usize {
-    let all_folder_sizes = collect_folder_sizes(file_name);
-    println!("{:?}", all_folder_sizes);
-    all_folder_sizes
-        .into_iter()
-        .map(|(_, size)| size)
+    let root = create_tree(file_name);
+    println!("{}", root);
+
+    root.bfs()
+        .filter(|f| f.is_folder())
+        .map(FileSystemObject::size)
         .filter(|size| size < &100000)
         .sum()
 }
 
-pub fn solve_part2(file_name: &str) -> isize {
+pub fn solve_part2(file_name: &str) -> usize {
+    let root = create_tree(file_name);
+    println!("{:?}", root);
+
     let total_disk_space = 70000000;
     let unused_space_limit = 30000000;
-    let all_folder_sizes = collect_folder_sizes(file_name);
 
-    let used_space: isize = all_folder_sizes[""] as isize;
-    let free_space: isize = total_disk_space - used_space;
-    let missing_free_space: isize = unused_space_limit - free_space;
+    let used_space = root.size();
+    let free_space = total_disk_space - used_space;
+    let missing_free_space = unused_space_limit - free_space;
 
-    all_folder_sizes
-        .into_iter()
-        .map(|(_, size)| size as isize)
+    root.bfs()
+        .filter(|f| f.is_folder())
+        .map(FileSystemObject::size)
         .filter(|size| size >= &missing_free_space)
         .min()
         .unwrap()
 }
 
-fn collect_folder_sizes(file_name: &str) -> HashMap<String, usize> {
-    let file_size_map = collect_filename_sizes(file_name);
-    let mut all_folders = HashSet::new();
-    for file_path in file_size_map.keys() {
-        let x = file_path.split('/').collect_vec();
-        for i in 0..x.len() - 1 {
-            all_folders.insert(x[0..=i].iter().join("/"));
-        }
-    }
+////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////
 
-    let mut all_folders = HashSet::new();
-    for file_path in file_size_map.keys() {
-        let x = file_path.split('/').collect_vec();
-        for i in 0..x.len() - 1 {
-            all_folders.insert(x[0..=i].iter().join("/"));
-        }
-    }
+#[derive(Debug)]
+enum FileSystemObject {
+    Directory {
+        name: String,
+        children: Vec<FileSystemObject>,
+        cached_size: Option<usize>,
+    },
+    File {
+        name: String,
+        size: usize,
+    },
+}
 
-    let mut all_folder_sizes: HashMap<String, usize> = HashMap::new();
-    for (filepath, size) in file_size_map {
-        for folder in all_folders.iter() {
-            if filepath.starts_with(folder) {
-                *all_folder_sizes.entry(folder.clone()).or_insert(0) += size;
+impl Display for FileSystemObject {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FileSystemObject::Directory { name, children, .. } => {
+                writeln!(f, "Directory: '{}'", name)?;
+                for child in children {
+                    write!(f, "  {}", child)?;
+                }
+                Ok(())
+            }
+            FileSystemObject::File { name, size } => {
+                writeln!(f, "File: '{}' ({})", name, size)
             }
         }
     }
-
-    all_folder_sizes
 }
 
-////////////////////////////////////////////////////////////////////////////////////
+impl FileSystemObject {
+    fn new_file(name: String, size: usize) -> Self {
+        FileSystemObject::File { name, size }
+    }
 
-fn collect_filename_sizes(file_name: &str) -> HashMap<String, usize> {
-    let mut folder_size_map = HashMap::new();
-    let folder = &mut VecDeque::new();
-    let lines = &mut utils::file_to_lines(file_name).skip(1);
-    while let Some(line) = lines.next() {
-        if line.starts_with("$ cd ..") {
-            folder.pop_back();
-        } else if line.starts_with("$ cd ") {
-            let new_folder = line.get("$ cd ".len()..).unwrap().to_string();
-            folder.push_back(new_folder);
-        } else if line.starts_with("dir ") {
-            // skip
-        } else if line.starts_with("$ ls") {
-            // skip
-        } else {
-            let (size_str, filename) = line.split_whitespace().collect_tuple().unwrap();
-            let file_size = size_str.parse::<usize>().unwrap();
-            let folder_string = to_folder_string(folder) + "/" + filename;
-            folder_size_map.insert(
-                folder_string.clone(),
-                file_size + folder_size_map.get(&folder_string).unwrap_or(&0),
-            );
+    fn new_folder(name: String) -> Self {
+        FileSystemObject::Directory {
+            name,
+            children: vec![],
+            cached_size: None,
         }
     }
-    folder_size_map
+
+    fn add_child(&mut self, child: FileSystemObject) {
+        match self {
+            FileSystemObject::Directory {
+                children,
+                cached_size,
+                ..
+            } => {
+                children.push(child);
+                *cached_size = None
+            }
+            FileSystemObject::File { .. } => panic!("Cannot add child to file"),
+        }
+    }
+
+    fn size(&self) -> usize {
+        match self {
+            FileSystemObject::Directory { children, .. } => {
+                children.iter().map(|child| child.size()).sum()
+            }
+            FileSystemObject::File { size, .. } => *size,
+        }
+    }
+
+    /*
+    fn size_cached(&self) -> usize {
+        match self {
+            FileSystemObject::Directory { children, cached_size, .. } => {
+                if cached_size.is_none() {
+                    let folder_size = children.iter_mut().map(|child| child.size()).sum();
+                    *cached_size = Some(folder_size);
+                }
+                cached_size.unwrap()
+            }
+            FileSystemObject::File { size, .. } => *size,
+        }
+    }
+    */
+
+    fn bfs(&self) -> impl Iterator<Item = &FileSystemObject> {
+        let mut queue = VecDeque::new();
+        let mut result = vec![];
+        queue.push_back(self);
+        while let Some(curr) = queue.pop_front() {
+            result.push(curr);
+            if let FileSystemObject::Directory { children, .. } = curr {
+                for child in children {
+                    queue.push_back(child);
+                }
+            }
+        }
+        result.into_iter()
+    }
+
+    fn is_file(&self) -> bool {
+        match self {
+            FileSystemObject::Directory { .. } => false,
+            FileSystemObject::File { .. } => true,
+        }
+    }
+
+    fn is_folder(&self) -> bool {
+        !self.is_file()
+    }
 }
 
-fn to_folder_string(folder: &VecDeque<String>) -> String {
-    folder.iter().join("/")
+fn create_tree(file_name: &str) -> FileSystemObject {
+    fn create_tree_rec(lines: &mut impl Iterator<Item = String>, curr_tree: &mut FileSystemObject) {
+        while let Some(line) = lines.next() {
+            if line.starts_with("$ cd ..") {
+                return;
+            } else if line.starts_with("$ cd ") {
+                let new_folder = line.get("$ cd ".len()..).unwrap().to_string();
+                let mut new_tree = FileSystemObject::new_folder(new_folder);
+                create_tree_rec(lines, &mut new_tree);
+                curr_tree.add_child(new_tree);
+            } else if line.starts_with("dir ") {
+                // skip
+            } else if line.starts_with("$ ls") {
+                // skip
+            } else {
+                let (size_str, filename) = line.split_whitespace().collect_tuple().unwrap();
+                let file_size = size_str.parse::<usize>().unwrap();
+
+                let new_tree = FileSystemObject::new_file(filename.to_string(), file_size);
+                curr_tree.add_child(new_tree);
+            }
+        }
+    }
+    let lines = &mut utils::file_to_lines(file_name);
+    let mut root = FileSystemObject::new_folder("".to_string());
+    create_tree_rec(lines, &mut root);
+    root
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
