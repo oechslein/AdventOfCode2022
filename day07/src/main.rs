@@ -9,15 +9,10 @@
     clippy::must_use_candidate
 )]
 
-use std::{
-    cell::RefCell,
-    collections::VecDeque,
-};
+use std::{cell::RefCell, collections::VecDeque};
 
 #[cfg(debug_assertions)]
-use std::{
-    fmt::{Display, Formatter},
-};
+use std::fmt::{Display, Formatter};
 
 use itertools::Itertools;
 
@@ -32,9 +27,7 @@ fn main() {
 ////////////////////////////////////////////////////////////////////////////////////
 
 pub fn solve_part1(file_name: &str) -> usize {
-    let root = create_tree(file_name);
-
-    root.bfs()
+    parse(file_name).bfs()
         .filter(|f| f.is_folder())
         .map(FileSystemObject::size)
         .filter(|size| size < &100000)
@@ -42,7 +35,7 @@ pub fn solve_part1(file_name: &str) -> usize {
 }
 
 pub fn solve_part2(file_name: &str) -> usize {
-    let root = create_tree(file_name);
+    let root = parse(file_name);
 
     let total_disk_space = 70000000;
     let unused_space_limit = 30000000;
@@ -60,6 +53,11 @@ pub fn solve_part2(file_name: &str) -> usize {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
+
+fn parse(file_name: &str) -> FileSystemObject {
+    FileSystemObject::new_root().parse_lines(&mut utils::file_to_lines(file_name))
+}
+
 ////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug)]
@@ -96,29 +94,38 @@ impl Display for FileSystemObject {
 }
 
 impl FileSystemObject {
-    #[cfg(debug_assertions)]
-    fn new_file(name: String, size: usize) -> Self {
-        FileSystemObject::File { name, size }
-    }
-
-    #[cfg(not(debug_assertions))]
-    fn new_file(size: usize) -> Self {
-        FileSystemObject::File { size }
-    }
-
-    #[cfg(debug_assertions)]
-    fn new_folder(name: String) -> Self {
-        FileSystemObject::Directory {
-            name,
-            children: vec![],
-            cached_size: RefCell::new(None),
+    fn new_file(_name: &str, size: usize) -> Self {
+        #[cfg(debug_assertions)]
+        {
+            FileSystemObject::File {
+                name: _name.to_string(),
+                size,
+            }
+        }
+        #[cfg(not(debug_assertions))]
+        {
+            FileSystemObject::File { size }
         }
     }
-    #[cfg(not(debug_assertions))]
-    fn new_folder() -> Self {
-        FileSystemObject::Directory {
-            children: vec![],
-            cached_size: RefCell::new(None),
+    fn new_root() -> FileSystemObject {
+        FileSystemObject::new_folder("/")
+    }
+
+    fn new_folder(_name: &str) -> Self {
+        #[cfg(debug_assertions)]
+        {
+            FileSystemObject::Directory {
+                name: _name.to_string(),
+                children: vec![],
+                cached_size: RefCell::new(None),
+            }
+        }
+        #[cfg(not(debug_assertions))]
+        {
+            FileSystemObject::Directory {
+                children: vec![],
+                cached_size: RefCell::new(None),
+            }
         }
     }
 
@@ -167,6 +174,38 @@ impl FileSystemObject {
         result.into_iter()
     }
 
+    fn bfs_fn(&self, visit_fn: fn(&FileSystemObject)) {
+        visit_fn(self);
+        match self {
+            FileSystemObject::Directory { children, .. } => {
+                children.iter().for_each(|child| child.bfs_fn(visit_fn));
+            }
+            FileSystemObject::File { .. } => (),
+        };
+    }
+
+    fn parse_lines(mut self, lines: &mut impl Iterator<Item = String>) -> FileSystemObject {
+        while let Some(line) = lines.next() {
+            if line.starts_with("$ cd ..") {
+                break;
+            } else if line.starts_with("$ cd ") {
+                let new_subfolder_name = line.get("$ cd ".len()..).unwrap();
+                let new_subfolder = FileSystemObject::new_folder(new_subfolder_name);
+                self.add_child(new_subfolder.parse_lines(lines));
+            } else if line.starts_with("dir ") {
+                // skip
+            } else if line.starts_with("$ ls") {
+                // skip
+            } else {
+                let (size_str, filename) = line.split_whitespace().collect_tuple().unwrap();
+                let file_size = size_str.parse::<usize>().unwrap();
+                let new_file = FileSystemObject::new_file(filename, file_size);
+                self.add_child(new_file);
+            }
+        }
+        self
+    }
+
     fn is_file(&self) -> bool {
         match self {
             FileSystemObject::Directory { .. } => false,
@@ -177,43 +216,6 @@ impl FileSystemObject {
     fn is_folder(&self) -> bool {
         !self.is_file()
     }
-}
-
-fn create_tree(file_name: &str) -> FileSystemObject {
-    fn create_tree_rec(lines: &mut impl Iterator<Item = String>, curr_tree: &mut FileSystemObject) {
-        while let Some(line) = lines.next() {
-            if line.starts_with("$ cd ..") {
-                return;
-            } else if line.starts_with("$ cd ") {
-                let _new_folder = line.get("$ cd ".len()..).unwrap().to_string();
-                let mut new_tree = FileSystemObject::new_folder(
-                    #[cfg(debug_assertions)]
-                    _new_folder,
-                );
-                create_tree_rec(lines, &mut new_tree);
-                curr_tree.add_child(new_tree);
-            } else if line.starts_with("dir ") {
-                // skip
-            } else if line.starts_with("$ ls") {
-                // skip
-            } else {
-                let (size_str, _filename) = line.split_whitespace().collect_tuple().unwrap();
-                let file_size = size_str.parse::<usize>().unwrap();
-
-                let new_tree = FileSystemObject::new_file(
-                    #[cfg(debug_assertions)]_filename.to_string(), 
-                    file_size);
-                curr_tree.add_child(new_tree);
-            }
-        }
-    }
-    let lines = &mut utils::file_to_lines(file_name);
-    let mut root = FileSystemObject::new_folder(
-        #[cfg(debug_assertions)]
-        "".to_string(),
-    );
-    create_tree_rec(lines, &mut root);
-    root
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
