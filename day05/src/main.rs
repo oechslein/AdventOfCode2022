@@ -43,10 +43,7 @@ fn solve(file_name: &str, part1: bool) -> String {
             stack[to - 1].push_front(elem);
         }
     }
-    stack
-        .iter()
-        .map(|x| x.front().unwrap())
-        .collect::<String>()
+    stack.iter().map(|x| x.front().unwrap()).collect::<String>()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

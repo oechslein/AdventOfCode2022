@@ -27,7 +27,8 @@ fn main() {
 ////////////////////////////////////////////////////////////////////////////////////
 
 pub fn solve_part1(file_name: &str) -> usize {
-    parse(file_name).bfs()
+    parse(file_name)
+        .bfs()
         .filter(|f| f.is_folder())
         .map(FileSystemObject::size)
         .filter(|size| size < &100000)
