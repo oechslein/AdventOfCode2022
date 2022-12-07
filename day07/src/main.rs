@@ -10,7 +10,12 @@
 )]
 
 use std::{
+    cell::RefCell,
     collections::VecDeque,
+};
+
+#[cfg(debug_assertions)]
+use std::{
     fmt::{Display, Formatter},
 };
 
@@ -28,7 +33,6 @@ fn main() {
 
 pub fn solve_part1(file_name: &str) -> usize {
     let root = create_tree(file_name);
-    println!("{}", root);
 
     root.bfs()
         .filter(|f| f.is_folder())
@@ -39,7 +43,6 @@ pub fn solve_part1(file_name: &str) -> usize {
 
 pub fn solve_part2(file_name: &str) -> usize {
     let root = create_tree(file_name);
-    println!("{:?}", root);
 
     let total_disk_space = 70000000;
     let unused_space_limit = 30000000;
@@ -62,16 +65,19 @@ pub fn solve_part2(file_name: &str) -> usize {
 #[derive(Debug)]
 enum FileSystemObject {
     Directory {
+        #[cfg(debug_assertions)]
         name: String,
         children: Vec<FileSystemObject>,
-        cached_size: Option<usize>,
+        cached_size: RefCell<Option<usize>>,
     },
     File {
+        #[cfg(debug_assertions)]
         name: String,
         size: usize,
     },
 }
 
+#[cfg(debug_assertions)]
 impl Display for FileSystemObject {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -90,15 +96,29 @@ impl Display for FileSystemObject {
 }
 
 impl FileSystemObject {
+    #[cfg(debug_assertions)]
     fn new_file(name: String, size: usize) -> Self {
         FileSystemObject::File { name, size }
     }
 
+    #[cfg(not(debug_assertions))]
+    fn new_file(size: usize) -> Self {
+        FileSystemObject::File { size }
+    }
+
+    #[cfg(debug_assertions)]
     fn new_folder(name: String) -> Self {
         FileSystemObject::Directory {
             name,
             children: vec![],
-            cached_size: None,
+            cached_size: RefCell::new(None),
+        }
+    }
+    #[cfg(not(debug_assertions))]
+    fn new_folder() -> Self {
+        FileSystemObject::Directory {
+            children: vec![],
+            cached_size: RefCell::new(None),
         }
     }
 
@@ -110,7 +130,7 @@ impl FileSystemObject {
                 ..
             } => {
                 children.push(child);
-                *cached_size = None
+                cached_size.replace(None);
             }
             FileSystemObject::File { .. } => panic!("Cannot add child to file"),
         }
@@ -118,27 +138,19 @@ impl FileSystemObject {
 
     fn size(&self) -> usize {
         match self {
-            FileSystemObject::Directory { children, .. } => {
-                children.iter().map(|child| child.size()).sum()
-            }
-            FileSystemObject::File { size, .. } => *size,
-        }
-    }
-
-    /*
-    fn size_cached(&self) -> usize {
-        match self {
-            FileSystemObject::Directory { children, cached_size, .. } => {
-                if cached_size.is_none() {
-                    let folder_size = children.iter_mut().map(|child| child.size()).sum();
-                    *cached_size = Some(folder_size);
+            FileSystemObject::Directory {
+                children,
+                cached_size,
+                ..
+            } => {
+                if cached_size.borrow().is_none() {
+                    cached_size.replace(Some(children.iter().map(|child| child.size()).sum()));
                 }
-                cached_size.unwrap()
+                cached_size.borrow().unwrap()
             }
             FileSystemObject::File { size, .. } => *size,
         }
     }
-    */
 
     fn bfs(&self) -> impl Iterator<Item = &FileSystemObject> {
         let mut queue = VecDeque::new();
@@ -173,8 +185,11 @@ fn create_tree(file_name: &str) -> FileSystemObject {
             if line.starts_with("$ cd ..") {
                 return;
             } else if line.starts_with("$ cd ") {
-                let new_folder = line.get("$ cd ".len()..).unwrap().to_string();
-                let mut new_tree = FileSystemObject::new_folder(new_folder);
+                let _new_folder = line.get("$ cd ".len()..).unwrap().to_string();
+                let mut new_tree = FileSystemObject::new_folder(
+                    #[cfg(debug_assertions)]
+                    _new_folder,
+                );
                 create_tree_rec(lines, &mut new_tree);
                 curr_tree.add_child(new_tree);
             } else if line.starts_with("dir ") {
@@ -182,16 +197,21 @@ fn create_tree(file_name: &str) -> FileSystemObject {
             } else if line.starts_with("$ ls") {
                 // skip
             } else {
-                let (size_str, filename) = line.split_whitespace().collect_tuple().unwrap();
+                let (size_str, _filename) = line.split_whitespace().collect_tuple().unwrap();
                 let file_size = size_str.parse::<usize>().unwrap();
 
-                let new_tree = FileSystemObject::new_file(filename.to_string(), file_size);
+                let new_tree = FileSystemObject::new_file(
+                    #[cfg(debug_assertions)]_filename.to_string(), 
+                    file_size);
                 curr_tree.add_child(new_tree);
             }
         }
     }
     let lines = &mut utils::file_to_lines(file_name);
-    let mut root = FileSystemObject::new_folder("".to_string());
+    let mut root = FileSystemObject::new_folder(
+        #[cfg(debug_assertions)]
+        "".to_string(),
+    );
     create_tree_rec(lines, &mut root);
     root
 }
