@@ -80,9 +80,9 @@ fn parse_filled_stacks(first_part: &str) -> Vec<VecDeque<char>> {
         .collect_vec();
 
     for line in first_part {
-        for (stack_index, mut part) in line.chars().chunks(4).into_iter().enumerate() {
-            if part.next().unwrap() == '[' {
-                stack[stack_index].push_back(part.next().unwrap());
+        for (stack_index, curr_crate) in line.chars().skip(1).step_by(4).enumerate() {
+            if curr_crate != ' ' {
+                stack[stack_index].push_back(curr_crate);
             }
         }
     }
