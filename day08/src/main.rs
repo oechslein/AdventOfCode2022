@@ -42,22 +42,22 @@ mod tests {
 
     #[test]
     fn test1() {
-        assert_eq!(solve_part1("test.txt"), 95437);
+        assert_eq!(solve_part1("test.txt"), 42);
     }
 
     #[test]
     fn verify1() {
-        assert_eq!(solve_part1("input.txt"), 1792222);
+        assert_eq!(solve_part1("input.txt"), 42);
     }
 
     #[test]
     fn test2() {
-        assert_eq!(solve_part2("test.txt"), 24933642);
+        assert_eq!(solve_part2("test.txt"), 42);
     }
 
     #[test]
     fn verify2() {
-        assert_eq!(solve_part2("input.txt"), 1112963);
+        assert_eq!(solve_part2("input.txt"), 42);
     }
 
     #[bench]
