@@ -1,9 +1,9 @@
 //! Types grids
 
 /// CellIndexCoorType
-pub type CellIndexCoorType = usize;
+pub type CoorIndex = usize;
 /// CellIndexType
-pub type CellIndexType = (CellIndexCoorType, CellIndexCoorType);
+pub type Coor = (CoorIndex, CoorIndex);
 
 /// A type of topology
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

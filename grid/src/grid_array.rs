@@ -5,16 +5,18 @@ use std::mem::{replace, swap};
 use itertools::Itertools;
 use num_traits::Num;
 
+use crate::grid_iteration::{is_corner, is_edge};
+
 use super::grid_iteration;
-use super::grid_types::{CellIndexCoorType, CellIndexType, Neighborhood, Topology};
+use super::grid_types::{Coor, CoorIndex, Neighborhood, Topology};
 
 /// GridArray
 #[allow(missing_docs)]
 #[derive(Builder, Clone, PartialEq, Debug)]
 pub struct GridArray<T: Num + Clone + std::fmt::Display> {
     /// width of the grid
-    width: CellIndexCoorType,
-    height: CellIndexCoorType,
+    width: CoorIndex,
+    height: CoorIndex,
 
     #[builder(default = "Topology::Bounded")]
     topology: Topology,
@@ -38,18 +40,13 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
     }
 
     #[allow(unused_comparisons)]
-    fn _check_index(
-        x: CellIndexCoorType,
-        y: CellIndexCoorType,
-        width: usize,
-        height: usize,
-    ) -> bool {
+    fn _check_index(x: CoorIndex, y: CoorIndex, width: usize, height: usize) -> bool {
         #![allow(clippy::absurd_extreme_comparisons)]
         (0 <= x && x < width) && (0 <= y && y < height)
     }
 
     #[allow(unused_comparisons)]
-    fn check_index(&self, x: CellIndexCoorType, y: CellIndexCoorType) -> bool {
+    fn check_index(&self, x: CoorIndex, y: CoorIndex) -> bool {
         GridArray::<T>::_check_index(x, y, self.width, self.height)
     }
 
@@ -82,8 +79,20 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         self.neighborhood
     }
 
+    /// is_edge
+    pub fn is_edge(&self, x: CoorIndex, y: CoorIndex) -> bool {
+        assert!(self.check_index(x, y));
+        is_edge(self.topology, self.width, self.height, (x, y))
+    }
+
+    /// is_corner
+    pub fn is_corner(&self, x: CoorIndex, y: CoorIndex) -> bool {
+        assert!(self.check_index(x, y));
+        is_corner(self.topology, self.width, self.height, (x, y))
+    }
+
     /// get reference to element on x, y
-    pub fn get(&self, x: CellIndexCoorType, y: CellIndexCoorType) -> Option<&T> {
+    pub fn get(&self, x: CoorIndex, y: CoorIndex) -> Option<&T> {
         if self.check_index(x, y) {
             Some(&self._data[self.index_to_vec_index(x, y)])
         } else {
@@ -91,12 +100,12 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         }
     }
 
-    fn get_unchecked(&self, x: CellIndexCoorType, y: CellIndexCoorType) -> &T {
+    fn get_unchecked(&self, x: CoorIndex, y: CoorIndex) -> &T {
         &self._data[self.index_to_vec_index(x, y)]
     }
 
     /// get mutable reference element on x, y
-    pub fn get_mut(&mut self, x: CellIndexCoorType, y: CellIndexCoorType) -> Option<&mut T> {
+    pub fn get_mut(&mut self, x: CoorIndex, y: CoorIndex) -> Option<&mut T> {
         if self.check_index(x, y) {
             let vec_index = self.index_to_vec_index(x, y);
             Some(&mut self._data[vec_index])
@@ -106,23 +115,38 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
     }
 
     /// set new element on x, y and return old element
-    pub fn set(&mut self, x: CellIndexCoorType, y: CellIndexCoorType, new_value: T) -> T {
+    pub fn set(&mut self, x: CoorIndex, y: CoorIndex, new_value: T) -> T {
         assert!(self.check_index(x, y));
+        self.set_unchecked(x, y, new_value)
+    }
+
+    fn set_unchecked(&mut self, x: usize, y: usize, new_value: T) -> T {
         let vec_index = self.index_to_vec_index(x, y);
         replace(&mut self._data[vec_index], new_value)
     }
 
+    /// set new element on x, y based on vector
+    pub fn set_from_vec(&mut self, new_values: &Vec<Vec<T>>) {
+        assert_eq!(new_values.len(), self.height);
+        assert_eq!(new_values[0].len(), self.width);
+        for (y, row) in new_values.iter().enumerate() {
+            for (x, cell) in row.iter().enumerate() {
+                self.set_unchecked(x, y, cell.clone());
+            }
+        }
+    }
+
     /// return all indexes
-    pub fn all_indexes(&self) -> impl Iterator<Item = CellIndexType> {
+    pub fn all_indexes(&self) -> impl Iterator<Item = Coor> {
         grid_iteration::all_cells(self.width, self.height)
     }
 
     /// return all neighbor indexes (based on topology and neighborhood)
     pub fn neighborhood_cell_indexes(
         &self,
-        x: CellIndexCoorType,
-        y: CellIndexCoorType,
-    ) -> impl Iterator<Item = CellIndexType> {
+        x: CoorIndex,
+        y: CoorIndex,
+    ) -> impl Iterator<Item = Coor> {
         grid_iteration::neighborhood_cells(
             self.topology,
             self.width,
@@ -134,24 +158,24 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
 
     fn map_indexes_to_cells(
         &self,
-        it: impl Iterator<Item = CellIndexType>,
-    ) -> impl Iterator<Item = (CellIndexCoorType, CellIndexCoorType, &T)> {
-        it.map(|(x, y)| (x, y, self.get_unchecked(x, y)))
+        it: impl Iterator<Item = Coor>,
+    ) -> impl Iterator<Item = (Coor, &T)> {
+        it.map(|coor| (coor, self.get_unchecked(coor.0, coor.1)))
     }
 
     // map_indexes_to_cells_mut not possible to implement (multiple borrows of self_data)
 
     /// return all elements
-    pub fn all_cells(&self) -> impl Iterator<Item = (CellIndexCoorType, CellIndexCoorType, &T)> {
+    pub fn all_cells(&self) -> impl Iterator<Item = (Coor, &T)> {
         self.map_indexes_to_cells(self.all_indexes())
     }
 
     /// return all neighbor elements (based on topology and neighborhood)
     pub fn neighborhood_cells(
         &self,
-        x: CellIndexCoorType,
-        y: CellIndexCoorType,
-    ) -> impl Iterator<Item = (CellIndexCoorType, CellIndexCoorType, &T)> {
+        x: CoorIndex,
+        y: CoorIndex,
+    ) -> impl Iterator<Item = (Coor, &T)> {
         self.map_indexes_to_cells(self.neighborhood_cell_indexes(x, y))
     }
 
@@ -186,13 +210,7 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         }
     }
 
-    fn swap(
-        &mut self,
-        x1: CellIndexCoorType,
-        y1: CellIndexCoorType,
-        x2: CellIndexCoorType,
-        y2: CellIndexCoorType,
-    ) {
+    fn swap(&mut self, x1: CoorIndex, y1: CoorIndex, x2: CoorIndex, y2: CoorIndex) {
         if (x1, y1) != (x2, y2) {
             let vec_index1 = self.index_to_vec_index(x1, y1);
             let vec_index2 = self.index_to_vec_index(x2, y2);
@@ -218,7 +236,7 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         }
     }
 
-    fn _transform(&mut self, coors: impl Iterator<Item = CellIndexType>, swap_width_height: bool) {
+    fn _transform(&mut self, coors: impl Iterator<Item = Coor>, swap_width_height: bool) {
         let new_data = coors
             .map(|(x, y)| self.get_unchecked(x, y))
             .cloned()
@@ -293,7 +311,10 @@ mod tests {
             let mut new_value = 42;
             swap(a.get_mut(2, 3).unwrap(), &mut new_value);
             assert_eq!(a.get(2, 3), Some(&42));
-            let (_, _, cell) = a.all_cells().find(|(x, y, _)| (x, y) == (&2, &3)).unwrap();
+            let (_, cell) = a
+                .all_cells()
+                .find(|((x, y), _)| (x, y) == (&2, &3))
+                .unwrap();
             assert_eq!(cell, &42);
         }
 

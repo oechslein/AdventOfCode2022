@@ -1,18 +1,17 @@
 //! Manipulating 2d grids
 
 use super::grid_types::{
-    CellIndexCoorType, CellIndexType, Direction, Direction::*, Neighborhood, Neighborhood::*,
-    Topology, Topology::*,
+    Coor, CoorIndex, Direction, Direction::*, Neighborhood, Neighborhood::*, Topology, Topology::*,
 };
 
 /// Get the adjacent point to a point in a given direction
 pub(crate) fn adjacent_cell(
     t: Topology,
-    width: CellIndexCoorType,
-    height: CellIndexCoorType,
-    index: CellIndexType,
+    width: CoorIndex,
+    height: CoorIndex,
+    index: Coor,
     d: Direction,
-) -> Option<CellIndexType> {
+) -> Option<Coor> {
     let (x, y) = index;
     match d {
         NorthEast => adjacent_cell(t, width, height, index, North)
@@ -58,34 +57,19 @@ pub(crate) fn adjacent_cell(
 }
 
 /// Is a given point on an edge of a grid
-#[allow(dead_code)]
-pub(crate) fn is_edge(
-    t: Topology,
-    width: CellIndexCoorType,
-    height: CellIndexCoorType,
-    index: CellIndexType,
-) -> bool {
+pub(crate) fn is_edge(t: Topology, width: CoorIndex, height: CoorIndex, index: Coor) -> bool {
     let (x, y) = index;
     t == Topology::Bounded && (x == 0 || x + 1 == width || y == 0 || y + 1 == height)
 }
 
 /// Is a given point a corner of a grid
-#[allow(dead_code)]
-pub(crate) fn is_corner(
-    t: Topology,
-    width: CellIndexCoorType,
-    height: CellIndexCoorType,
-    index: CellIndexType,
-) -> bool {
+pub(crate) fn is_corner(t: Topology, width: CoorIndex, height: CoorIndex, index: Coor) -> bool {
     let (x, y) = index;
     t == Topology::Bounded && (x == 0 || x + 1 == width) && (y == 0 || y + 1 == height)
 }
 
 /// Returns an iterator over the points of a grid
-pub(crate) fn all_cells(
-    width: CellIndexCoorType,
-    height: CellIndexCoorType,
-) -> impl Iterator<Item = CellIndexType> {
+pub(crate) fn all_cells(width: CoorIndex, height: CoorIndex) -> impl Iterator<Item = Coor> {
     (0..width).flat_map(move |x| (0..height).map(move |y| (x, y)))
 }
 
@@ -104,17 +88,17 @@ fn all_adjacent_cells(n: Neighborhood) -> impl Iterator<Item = Direction> {
 /// Returns an iterator over the points in a neighborhood around a point
 pub(crate) fn neighborhood_cells(
     t: Topology,
-    width: CellIndexCoorType,
-    height: CellIndexCoorType,
-    index: CellIndexType,
+    width: CoorIndex,
+    height: CoorIndex,
+    index: Coor,
     n: Neighborhood,
-) -> impl Iterator<Item = CellIndexType> {
+) -> impl Iterator<Item = Coor> {
     all_adjacent_cells(n)
         .filter_map(move |direction| adjacent_cell(t, width, height, index, direction))
 }
 
 /// Returns manhattan distance
-pub fn manhattan_distance(index1: CellIndexType, index2: CellIndexType) -> usize {
+pub fn manhattan_distance(index1: Coor, index2: Coor) -> usize {
     #![allow(clippy::cast_sign_loss)]
     ((isize::try_from(index1.0).unwrap() - isize::try_from(index2.0).unwrap()).abs()
         + (isize::try_from(index1.1).unwrap() - isize::try_from(index2.1).unwrap()).abs())
@@ -169,7 +153,7 @@ mod tests {
     #[test]
     fn neighborino() {
         assert_eq!(
-            neighborhood_cells(Torus, 5, 5, (0, 0), Square).collect::<HashSet<CellIndexType>>(),
+            neighborhood_cells(Torus, 5, 5, (0, 0), Square).collect::<HashSet<Coor>>(),
             HashSet::from([
                 (0, 4),
                 (0, 1),
@@ -182,7 +166,7 @@ mod tests {
             ]),
         );
         assert_eq!(
-            neighborhood_cells(Bounded, 5, 5, (0, 0), Square).collect::<HashSet<CellIndexType>>(),
+            neighborhood_cells(Bounded, 5, 5, (0, 0), Square).collect::<HashSet<Coor>>(),
             HashSet::from([(0, 1), (1, 0), (1, 1)]),
         );
     }
