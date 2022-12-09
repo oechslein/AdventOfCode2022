@@ -9,11 +9,11 @@
     clippy::must_use_candidate
 )]
 
-use itertools::{Itertools};
+use itertools::Itertools;
 
 use gif::{Encoder, Frame, Repeat};
 use image::{ImageBuffer, RgbImage};
-use std::fs::File;
+use std::{fs::File, iter::repeat};
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2
@@ -27,7 +27,6 @@ fn main() {
 
 type Position = (isize, isize);
 
-const DEBUG_PRINT: bool = if cfg!(test) { false } else { false };
 const SAVE_IMAGE: bool = if cfg!(test) { false } else { true };
 const GET_MINMAX: bool = if cfg!(test) { false } else { true };
 
@@ -52,43 +51,31 @@ pub fn solve_part2(file_name: &str) -> usize {
 fn solve(amount_of_knots: usize, file_name: &str, save_image: bool) -> usize {
     let mut frame_vec: Vec<Frame> = Vec::new();
 
-    let mut pos_knots_vec: Vec<Position> = Vec::with_capacity(amount_of_knots);
+    let mut knots_vec: Vec<Position> = Vec::with_capacity(amount_of_knots);
     for _ in 0..amount_of_knots {
-        pos_knots_vec.push((0, 0));
+        knots_vec.push((0, 0));
     }
+
     let mut visited_positions_head: Vec<Position> = Vec::new();
     visited_positions_head.push((0, 0));
     let mut visited_positions_tail: Vec<Position> = Vec::new();
     visited_positions_tail.push((0, 0));
-    for (_line_index, (direction, distance)) in parse_input(file_name).enumerate() {
-        for _index in 0..distance {
-            apply_step(&mut pos_knots_vec[0], direction);
-            for (index_heads, index_tail) in (0..pos_knots_vec.len()).zip(1..pos_knots_vec.len()) {
-                fix_tail_position(pos_knots_vec[index_heads], &mut pos_knots_vec[index_tail]);
 
-                if DEBUG_PRINT {
-                    print_grid(&pos_knots_vec, (0, -6), (6, 0));
-                }
-            }
-            if DEBUG_PRINT {
-                println!("{}. {} -> {:?}", _index, direction, pos_knots_vec);
-                print_grid(&pos_knots_vec, (0, -4), (5, 0));
-                println!("");
-            }
+    for direction in parse_input_directions(file_name) {
+        apply_step(&mut knots_vec[0], direction);
+        fixup_tail_positions(&mut knots_vec);
 
+        visited_positions_tail.push(knots_vec[knots_vec.len() - 1]);
+        if GET_MINMAX || save_image {
+            visited_positions_head.push(knots_vec[0]);
             if save_image {
                 add_frame_to_image(
                     &visited_positions_tail,
-                    &pos_knots_vec,
+                    &knots_vec,
                     amount_of_knots,
                     &mut frame_vec,
                 );
             }
-
-            if GET_MINMAX || save_image {
-                visited_positions_head.push(pos_knots_vec[0]);
-            }
-            visited_positions_tail.push(pos_knots_vec[pos_knots_vec.len() - 1]);
         }
     }
 
@@ -107,9 +94,73 @@ fn solve(amount_of_knots: usize, file_name: &str, save_image: bool) -> usize {
     visited_positions_tail.into_iter().unique().count()
 }
 
+fn fixup_tail_positions(knots_vec: &mut Vec<Position>) {
+    for index_head in 0..knots_vec.len() - 1 {
+        let index_tail = index_head + 1;
+        knots_vec[index_tail] = get_new_tail_pos(knots_vec[index_head], knots_vec[index_tail]);
+    }
+}
+
+fn parse_input_directions(file_name: &str) -> impl Iterator<Item = char> {
+    parse_input(file_name).flat_map(|(direction, distance)| repeat(direction).take(distance))
+}
+
+fn get_new_tail_pos(head_pos: Position, tail_pos: Position) -> Position {
+    if is_touching(head_pos, tail_pos) {
+        tail_pos
+    } else if head_pos.0 == tail_pos.0
+        || head_pos.1 == tail_pos.1
+        || (head_pos.0 - tail_pos.0).abs() == (head_pos.1 - tail_pos.1).abs()
+    {
+        // same row or same column or diagonal
+        (
+            head_pos.0 - (head_pos.0 - tail_pos.0).signum(),
+            head_pos.1 - (head_pos.1 - tail_pos.1).signum(),
+        )
+    } else if (head_pos.0 - tail_pos.0).abs() < (head_pos.1 - tail_pos.1).abs() {
+        // farer away in y direction
+        (head_pos.0, head_pos.1 - (head_pos.1 - tail_pos.1).signum())
+    } else {
+        // farer away in x direction
+        assert!(
+            (head_pos.0 - tail_pos.0).abs() > (head_pos.1 - tail_pos.1).abs(),
+            "pos_head: {:?}, pos_tail: {:?}",
+            head_pos,
+            tail_pos
+        );
+        (head_pos.0 - (head_pos.0 - tail_pos.0).signum(), head_pos.1)
+    }
+}
+
+fn apply_step(pos_head: &mut Position, direction: char) {
+    match direction {
+        'R' => pos_head.0 += 1,
+        'L' => pos_head.0 -= 1,
+        'U' => pos_head.1 -= 1,
+        'D' => pos_head.1 += 1,
+        _ => panic!("Unknown direction {}", direction),
+    }
+}
+
+fn is_touching(pos_head: Position, pos_tail: Position) -> bool {
+    (pos_head.0 - pos_tail.0).abs() <= 1 && (pos_head.1 - pos_tail.1).abs() <= 1
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+
+fn parse_input(file_name: &str) -> impl Iterator<Item = (char, usize)> {
+    utils::file_to_lines(file_name).map(|line| {
+        let (direction, distance) = line.split_at(1);
+        (
+            direction.chars().next().unwrap(),
+            distance.trim().parse::<usize>().unwrap(),
+        )
+    })
+}
+
 fn add_frame_to_image(
-    visited_positions_tail: &Vec<(isize, isize)>,
-    pos_knots_vec: &Vec<(isize, isize)>,
+    visited_positions_tail: &Vec<Position>,
+    pos_knots_vec: &Vec<Position>,
     amount_of_knots: usize,
     frame_vec: &mut Vec<Frame>,
 ) {
@@ -171,64 +222,6 @@ fn print_grid(pos_knots_vec: &Vec<Position>, min_pos: Position, max_pos: Positio
         }
         println!();
     }
-}
-
-fn apply_step(pos_head: &mut Position, direction: char) {
-    match direction {
-        'R' => pos_head.0 += 1,
-        'L' => pos_head.0 -= 1,
-        'U' => pos_head.1 -= 1,
-        'D' => pos_head.1 += 1,
-        _ => panic!("Unknown direction {}", direction),
-    }
-}
-
-fn fix_tail_position(pos_head: Position, pos_tail: &mut Position) {
-    if is_touching(pos_head, *pos_tail) {
-        // no changes needed if touching
-        return;
-    }
-
-    *pos_tail = {
-        if pos_head.0 == pos_tail.0
-            || pos_head.1 == pos_tail.1
-            || (pos_head.0 - pos_tail.0).abs() == (pos_head.1 - pos_tail.1).abs()
-        {
-            // same row or same column or diagonal
-            (
-                pos_head.0 - (pos_head.0 - pos_tail.0).signum(),
-                pos_head.1 - (pos_head.1 - pos_tail.1).signum(),
-            )
-        } else if (pos_head.0 - pos_tail.0).abs() < (pos_head.1 - pos_tail.1).abs() {
-            // farer away in y direction
-            (pos_head.0, pos_head.1 - (pos_head.1 - pos_tail.1).signum())
-        } else {
-            // farer away in x direction
-            assert!(
-                (pos_head.0 - pos_tail.0).abs() > (pos_head.1 - pos_tail.1).abs(),
-                "pos_head: {:?}, pos_tail: {:?}",
-                pos_head,
-                pos_tail
-            );
-            (pos_head.0 - (pos_head.0 - pos_tail.0).signum(), pos_head.1)
-        }
-    };
-}
-
-fn is_touching(pos_head: Position, pos_tail: Position) -> bool {
-    (pos_head.0 - pos_tail.0).abs() <= 1 && (pos_head.1 - pos_tail.1).abs() <= 1
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-
-fn parse_input(file_name: &str) -> impl Iterator<Item = (char, usize)> {
-    utils::file_to_lines(file_name).map(|line| {
-        let (direction, distance) = line.split_at(1);
-        (
-            direction.chars().next().unwrap(),
-            distance.trim().parse::<usize>().unwrap(),
-        )
-    })
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

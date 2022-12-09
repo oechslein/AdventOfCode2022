@@ -109,9 +109,9 @@ where
 pub fn with_measure<T: Debug>(title: &str, f: fn() -> T) -> T {
     let start = Instant::now();
     let res = f();
-    let duration = start.elapsed();
+    let duration = start.elapsed().as_micros();
     println!(
-        "{} result: {:?} (elapsed time is: {:?})",
+        "{} result: {:?} (elapsed time is: {} micro seconds)",
         title, res, duration
     );
     res
