@@ -9,7 +9,7 @@
     clippy::must_use_candidate
 )]
 
-use itertools::{Itertools};
+use itertools::Itertools;
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2

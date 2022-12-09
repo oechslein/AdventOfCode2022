@@ -38,6 +38,7 @@ fn main() {
 
 pub fn solve_part1(file_name: &str) -> usize {
     utils::file_to_string(file_name)
+        .replace("\r\n", "\n")
         .split("\n\n")
         .map(|chunks_str| sum_of_nums(chunks_str))
         .max()
@@ -46,6 +47,7 @@ pub fn solve_part1(file_name: &str) -> usize {
 
 pub fn solve_part2(file_name: &str) -> usize {
     utils::file_to_string(file_name)
+        .replace("\r\n", "\n")
         .split("\n\n")
         .map(|chunks_str| sum_of_nums(chunks_str))
         .map(Reverse) // we want the largest but we only have k_smallest

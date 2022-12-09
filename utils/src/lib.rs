@@ -24,7 +24,7 @@ pub fn printlnit<T: Debug>(x: &T) {
 }
 
 /// Allows cargo run to be called in dayXY and in root folder
-fn correct_folder(file_name: &str) -> PathBuf {
+pub fn correct_folder(file_name: &str) -> PathBuf {
     let mut file_path = PathBuf::from(file_name);
     if !file_path.exists() {
         if let Some(file_name) = file_path.file_name() {
@@ -36,9 +36,7 @@ fn correct_folder(file_name: &str) -> PathBuf {
 
 /// Reads a file and return its content as a string
 pub fn file_to_string(file_name: &str) -> String {
-    fs::read_to_string(correct_folder(file_name))
-        .unwrap()
-        .replace("\r\n", "\n")
+    fs::read_to_string(correct_folder(file_name)).unwrap()
 }
 
 /// Reads a file, splits per newline and returns an iterator
@@ -109,10 +107,13 @@ where
 pub fn with_measure<T: Debug>(title: &str, f: fn() -> T) -> T {
     let start = Instant::now();
     let res = f();
-    let duration = start.elapsed().as_micros();
+    let duration = start.elapsed();
     println!(
-        "{} result: {:?} (elapsed time is: {} micro seconds)",
-        title, res, duration
+        "{} result: {:?} (elapsed time is: {:?} / {} millisecs)",
+        title,
+        res,
+        duration,
+        duration.as_secs_f32() * 1000.0
     );
     res
 }

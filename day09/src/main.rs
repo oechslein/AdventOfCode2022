@@ -9,23 +9,26 @@
     clippy::must_use_candidate
 )]
 
+use fxhash::FxHashSet;
 use itertools::Itertools;
 
 use gif::{Encoder, Frame, Repeat};
 use image::{ImageBuffer, RgbImage};
 use std::{fs::File, iter::repeat};
 
+use derive_more::{Add, AddAssign, Constructor, Display, Sub, SubAssign};
+
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2
 /// AOC
 fn main() {
-    utils::with_measure("Part 1", || solve_part1("day09/test.txt"));
+    utils::with_measure("Part 1", || solve_part1("day09/input.txt"));
     utils::with_measure("Part 2", || solve_part2("day09/input.txt"));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-const SAVE_IMAGE: bool = true;
+const SAVE_IMAGE: bool = false;
 const GET_MINMAX: bool = true;
 
 // minmax_x:  (-103, 55), minmax_y: (-6, 274)
@@ -43,17 +46,97 @@ pub fn solve_part2(file_name: &str) -> usize {
 }
 
 fn solve(file_name: &str, amount_of_knots: usize, save_image: bool) -> usize {
-    let mut wurm: Wurm = Wurm::new(amount_of_knots, (0, 0), save_image);
-    wurm.apply_steps(parse_input_directions(file_name));
-    wurm.unique_count()
+    if cfg!(not(test)) && (save_image || GET_MINMAX) {
+        let mut wurm = Wurm::new(amount_of_knots, Position::new(0, 0), save_image);
+        wurm.apply_steps(parse_input_directions(file_name))
+    } else {
+        let mut wurm = WurmFast::new(amount_of_knots, Position::new(0, 0));
+        wurm.apply_steps(parse_input_directions(file_name))
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-type Position = (isize, isize);
+#[derive(
+    Eq,
+    PartialEq,
+    Hash,
+    PartialOrd,
+    Clone,
+    Debug,
+    //    From,
+    //    Into,
+    Add,
+    Sub,
+    AddAssign,
+    SubAssign,
+    //    Sum,
+    Constructor,
+    Display,
+)]
+//#[into(owned, ref, ref_mut)]
+#[display(fmt = "({},{})", _0, _1)]
+struct Position(isize, isize);
+
+impl Position {
+    fn abs(&self) -> Position {
+        Position(self.0.abs(), self.1.abs())
+    }
+
+    fn signum(&self) -> Position {
+        Position(self.0.signum(), self.1.signum())
+    }
+}
+
+struct WurmFast {
+    knots_vec: Vec<Position>,
+    unique_visited_positions_tail: FxHashSet<Position>,
+}
+
+impl WurmFast {
+    fn new(amount_of_knots: usize, start_pos: Position) -> Self {
+        let mut unique_visited_positions_tail = FxHashSet::default();
+        unique_visited_positions_tail.insert(start_pos.clone());
+        Self {
+            knots_vec: vec![start_pos.clone(); amount_of_knots],
+            unique_visited_positions_tail,
+        }
+    }
+
+    fn apply_steps(&mut self, parse_input_directions: impl Iterator<Item = Position>) -> usize {
+        for direction in parse_input_directions {
+            self.apply_step(direction);
+        }
+        self.unique_count()
+    }
+
+    fn apply_step(&mut self, direction: Position) {
+        self.knots_vec[0] += direction;
+
+        self.fixup_tail_positions();
+        self.unique_visited_positions_tail
+            .insert(self.knots_vec[self.knots_vec.len() - 1].clone());
+    }
+
+    fn fixup_tail_positions(&mut self) {
+        for index_head in 0..self.knots_vec.len() - 1 {
+            let index_tail = index_head + 1;
+            let diff_pos = self.knots_vec[index_head].clone() - self.knots_vec[index_tail].clone();
+            let diff_pos_abs = diff_pos.abs();
+            if diff_pos_abs.0 > 1 || diff_pos_abs.1 > 1 {
+                // not touching
+                self.knots_vec[index_tail] += diff_pos.signum();
+            }
+        }
+    }
+
+    fn unique_count(&self) -> usize {
+        self.unique_visited_positions_tail.len()
+    }
+}
 
 struct Wurm<'a> {
-    knots_vec: Vec<Position>,
+    wurm: WurmFast,
     save_image: bool,
     visited_positions_head: Vec<Position>,
     visited_positions_tail: Vec<Position>,
@@ -62,95 +145,33 @@ struct Wurm<'a> {
 
 impl<'a> Wurm<'a> {
     fn new(amount_of_knots: usize, start_pos: Position, save_image: bool) -> Self {
-        let knots_vec: Vec<Position> = vec![start_pos; amount_of_knots];
-        let mut visited_positions_head = Vec::new();
-        visited_positions_head.push(start_pos);
-        let mut visited_positions_tail = Vec::with_capacity(20000);
-        visited_positions_tail.push(start_pos);
-
         Self {
-            knots_vec,
+            wurm: WurmFast::new(amount_of_knots, start_pos.clone()),
             save_image: save_image && cfg!(not(test)),
-            visited_positions_head,
-            visited_positions_tail,
+            visited_positions_head: vec![start_pos.clone()],
+            visited_positions_tail: vec![start_pos.clone()],
             frame_vec: vec![],
         }
     }
 
-    fn get_last_tail(&self) -> Position {
-        self.knots_vec[self.knots_vec.len() - 1]
-    }
-
-    fn get_head(&self) -> Position {
-        self.knots_vec[0]
-    }
-
-    fn apply_steps(&mut self, parse_input_directions: impl Iterator<Item = char>) {
+    fn apply_steps(&mut self, parse_input_directions: impl Iterator<Item = Position>) -> usize {
         for direction in parse_input_directions {
             self.apply_step(direction);
         }
+
         self.print_minmax();
         self.save_gif();
+
+        self.wurm.unique_count()
     }
 
-    fn apply_step(&mut self, direction: char) {
-        self.knots_vec[0] = self.get_new_position(direction);
+    fn apply_step(&mut self, direction: Position) {
+        self.wurm.apply_step(direction);
 
-        self.fixup_tail_positions();
-        self.visited_positions_tail.push(self.get_last_tail());
+        self.visited_positions_tail
+            .push(self.wurm.knots_vec[self.wurm.knots_vec.len() - 1].clone());
 
         self.save_frame();
-    }
-
-    fn get_new_position(&self, direction: char) -> Position {
-        let (pos_head_x, pos_head_y) = self.get_head();
-        match direction {
-            'R' => (pos_head_x + 1, pos_head_y),
-            'L' => (pos_head_x - 1, pos_head_y),
-            'U' => (pos_head_x, pos_head_y - 1),
-            'D' => (pos_head_x, pos_head_y + 1),
-            _ => panic!("Unknown direction {}", direction),
-        }
-    }
-
-    fn fixup_tail_positions(&mut self) {
-        for index_head in 0..self.knots_vec.len() - 1 {
-            let index_tail = index_head + 1;
-            self.knots_vec[index_tail] =
-                self.get_new_tail_pos(self.knots_vec[index_head], self.knots_vec[index_tail]);
-        }
-    }
-
-    fn get_new_tail_pos(&self, head_pos: Position, tail_pos: Position) -> Position {
-        if (head_pos.0 - tail_pos.0).abs() <= 1 && (head_pos.1 - tail_pos.1).abs() <= 1 {
-            // is touching
-            tail_pos
-        } else if head_pos.0 == tail_pos.0
-            || head_pos.1 == tail_pos.1
-            || (head_pos.0 - tail_pos.0).abs() == (head_pos.1 - tail_pos.1).abs()
-        {
-            // same row or same column or diagonal
-            (
-                head_pos.0 - (head_pos.0 - tail_pos.0).signum(),
-                head_pos.1 - (head_pos.1 - tail_pos.1).signum(),
-            )
-        } else if (head_pos.0 - tail_pos.0).abs() < (head_pos.1 - tail_pos.1).abs() {
-            // farer away in y direction
-            (head_pos.0, head_pos.1 - (head_pos.1 - tail_pos.1).signum())
-        } else {
-            // farer away in x direction
-            assert!(
-                (head_pos.0 - tail_pos.0).abs() > (head_pos.1 - tail_pos.1).abs(),
-                "pos_head: {:?}, pos_tail: {:?}",
-                head_pos,
-                tail_pos
-            );
-            (head_pos.0 - (head_pos.0 - tail_pos.0).signum(), head_pos.1)
-        }
-    }
-
-    fn unique_count(&self) -> usize {
-        self.visited_positions_tail.iter().unique().count()
     }
 
     fn should_save_image(&self) -> bool {
@@ -163,7 +184,8 @@ impl<'a> Wurm<'a> {
 
     fn save_frame(&mut self) {
         if self.should_print_minmax() || self.should_save_image() {
-            self.visited_positions_head.push(self.get_head());
+            self.visited_positions_head
+                .push(self.wurm.knots_vec[0].clone());
         }
 
         if self.should_save_image() {
@@ -184,8 +206,8 @@ impl<'a> Wurm<'a> {
                     image::Rgb([color, color, color]),
                 );
             }
-            for (index, knot_pos) in (&self.knots_vec).iter().rev().enumerate() {
-                let color_value = ((index + 1) * 255 / self.knots_vec.len()) as u8;
+            for (index, knot_pos) in (&self.wurm.knots_vec).iter().rev().enumerate() {
+                let color_value = ((index + 1) * 255 / self.wurm.knots_vec.len()) as u8;
                 img.put_pixel(
                     (-MINMAX_X.0 + knot_pos.0) as u32,
                     (-MINMAX_Y.0 + knot_pos.1) as u32,
@@ -230,20 +252,36 @@ impl<'a> Wurm<'a> {
     }
 }
 
-fn parse_input_directions(file_name: &str) -> impl Iterator<Item = char> {
-    parse_input(file_name).flat_map(|(direction, distance)| repeat(direction).take(distance))
-}
-
 ////////////////////////////////////////////////////////////////////////////////////
 
 fn parse_input(file_name: &str) -> impl Iterator<Item = (char, usize)> {
-    utils::file_to_lines(file_name).map(|line| {
-        let (direction, distance) = line.split_at(1);
-        (
-            direction.chars().next().unwrap(),
-            distance.trim().parse::<usize>().unwrap(),
-        )
-    })
+    let input = utils::file_to_string(file_name);
+    input
+        .lines()
+        .map(|line| {
+            let (direction, distance) = line.split_at(1);
+            (
+                direction.chars().next().unwrap(),
+                distance.trim().parse::<usize>().unwrap(),
+            )
+        })
+        .collect_vec()
+        .into_iter()
+}
+
+fn parse_input_directions(file_name: &str) -> impl Iterator<Item = Position> {
+    parse_input(file_name)
+        .flat_map(|(direction, distance)| repeat(parse_direction(direction)).take(distance))
+}
+
+fn parse_direction(direction: char) -> Position {
+    match direction {
+        'R' => Position::new(1, 0),
+        'L' => Position::new(-1, 0),
+        'U' => Position::new(0, -1),
+        'D' => Position::new(0, 1),
+        _ => unreachable!(),
+    }
 }
 
 #[allow(dead_code)]
@@ -253,7 +291,7 @@ fn print_grid(pos_knots_vec: &Vec<Position>, min_pos: Position, max_pos: Positio
             if let Some((index, _)) = pos_knots_vec
                 .iter()
                 .enumerate()
-                .filter(|(_, p)| **p == (x, y))
+                .filter(|(_, p)| **p == Position::new(x, y))
                 .next()
             {
                 print!("{}", index);

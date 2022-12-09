@@ -25,6 +25,7 @@ fn main() {
 
 pub fn solve_part1(file_name: &str) -> u32 {
     utils::file_to_string(file_name)
+        .replace("\r\n", "\n")
         .split('\n')
         .map(|line| split_into_half(line))
         .map(|(compartment1, compartment2)| {
@@ -35,6 +36,7 @@ pub fn solve_part1(file_name: &str) -> u32 {
 
 pub fn solve_part2(file_name: &str) -> u32 {
     utils::file_to_string(file_name)
+        .replace("\r\n", "\n")
         .split('\n')
         .map(|line| line.chars())
         .tuples::<(_, _, _)>()

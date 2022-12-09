@@ -33,6 +33,7 @@ pub fn solve_part2(file_name: &str) -> usize {
 
 fn solve(file_name: &str, length_marker: usize) -> usize {
     utils::file_to_string(file_name)
+        .replace("\r\n", "\n")
         .chars()
         .collect_vec()
         .windows(length_marker)

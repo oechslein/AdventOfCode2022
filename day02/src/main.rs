@@ -24,14 +24,16 @@ fn main() {
 ////////////////////////////////////////////////////////////////////////////////////
 
 pub fn solve_part1(file_name: &str) -> usize {
-    parse_input_part(&utils::file_to_string(file_name))
+    let input = utils::file_to_string(file_name).replace("\r\n", "\n");
+    parse_input_part(&input)
         .map(Move::set_round_outcome)
         .map(Move::player_score)
         .sum()
 }
 
 pub fn solve_part2(file_name: &str) -> usize {
-    parse_input_part(&utils::file_to_string(file_name))
+    let input = utils::file_to_string(file_name).replace("\r\n", "\n");
+    parse_input_part(&input)
         .map(Move::set_player_move)
         .map(|x| Move::player_score(x))
         .sum()

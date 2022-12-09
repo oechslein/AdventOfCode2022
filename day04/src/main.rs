@@ -43,6 +43,7 @@ fn parse_input<'a>(
     file_name: &'a str,
 ) -> impl Iterator<Item = ((usize, usize), (usize, usize))> + 'a {
     utils::file_to_string(file_name)
+        .replace("\r\n", "\n")
         .split('\n')
         .map(|line| {
             line.split(',')

@@ -49,7 +49,7 @@ fn solve(file_name: &str, part1: bool) -> String {
 ////////////////////////////////////////////////////////////////////////////////////
 
 fn parse(file_name: &str) -> (Vec<VecDeque<char>>, Vec<(usize, usize, usize)>) {
-    let input = utils::file_to_string(file_name);
+    let input = utils::file_to_string(file_name).replace("\r\n", "\n");
     let (first_part, moves_part) = input.split_once("\n\n").unwrap();
     (parse_filled_stacks(first_part), parse_moves(moves_part))
 }

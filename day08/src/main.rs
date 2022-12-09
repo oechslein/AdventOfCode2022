@@ -46,7 +46,11 @@ type MyGridArray = GridArray<MyGridArrayItemType>;
 
 fn create_forest_grid(file_name: &str) -> MyGridArray {
     let vecs = utils::file_to_lines(file_name)
-        .map(|line| line.chars().map(|c| c.to_digit(10).unwrap() as MyGridArrayItemType).collect_vec())
+        .map(|line| {
+            line.chars()
+                .map(|c| c.to_digit(10).unwrap() as MyGridArrayItemType)
+                .collect_vec()
+        })
         .collect_vec();
     let mut forest = GridArrayBuilder::default()
         .width(vecs[0].len())
@@ -124,7 +128,11 @@ fn calc_scenic_scores<'a>(forest: &'a MyGridArray) -> impl Iterator<Item = (Coor
         .map(move |(coor, tree_size)| (coor, calc_scenic_score_x_y(forest, coor, *tree_size)))
 }
 
-fn calc_scenic_score_x_y(forest: &MyGridArray, coor: Coor, tree_size: MyGridArrayItemType) -> usize {
+fn calc_scenic_score_x_y(
+    forest: &MyGridArray,
+    coor: Coor,
+    tree_size: MyGridArrayItemType,
+) -> usize {
     let scenic_score_left = amount_of_trees_visible_for_house(
         to_left_iter(coor, forest.get_width(), forest.get_height()),
         forest,
