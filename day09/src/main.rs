@@ -1,6 +1,6 @@
-#![allow(unused_imports)]
-#![allow(dead_code)]
-#![allow(unused_must_use)]
+//#![allow(unused_imports)]
+//#![allow(dead_code)]
+//#![allow(unused_must_use)]
 #![feature(test)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
@@ -9,20 +9,10 @@
     clippy::must_use_candidate
 )]
 
-use std::{
-    collections::{HashMap, HashSet},
-    iter::repeat,
-};
-
-use grid::{
-    grid_array::{GridArray, GridArrayBuilder},
-    grid_types::{Coor, CoorIndex, Neighborhood, Topology},
-};
-use itertools::{chain, Itertools};
-use utils::printlnit;
+use itertools::{Itertools};
 
 use gif::{Encoder, Frame, Repeat};
-use image::{GenericImage, GenericImageView, ImageBuffer, RgbImage};
+use image::{ImageBuffer, RgbImage};
 use std::fs::File;
 
 ////////////////////////////////////////////////////////////////////////////////////

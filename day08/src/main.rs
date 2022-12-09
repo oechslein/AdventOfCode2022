@@ -1,6 +1,6 @@
-#![allow(unused_imports)]
-#![allow(dead_code)]
-#![allow(unused_must_use)]
+//#![allow(unused_imports)]
+//#![allow(dead_code)]
+//#![allow(unused_must_use)]
 #![feature(test)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
@@ -9,16 +9,13 @@
     clippy::must_use_candidate
 )]
 
-use std::{
-    collections::{HashMap, HashSet},
-    iter::repeat,
-};
+use std::iter::repeat;
 
 use grid::{
     grid_array::{GridArray, GridArrayBuilder},
-    grid_types::{Coor, CoorIndex, Neighborhood, Topology},
+    grid_types::{Coor, Neighborhood, Topology},
 };
-use itertools::{chain, Itertools};
+use itertools::Itertools;
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2
