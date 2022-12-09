@@ -25,125 +25,213 @@ fn main() {
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-type Position = (isize, isize);
-
-const SAVE_IMAGE: bool = if cfg!(test) { false } else { true };
-const GET_MINMAX: bool = if cfg!(test) { false } else { true };
+const SAVE_IMAGE: bool = true;
+const GET_MINMAX: bool = true;
 
 // minmax_x:  (-103, 55), minmax_y: (-6, 274)
 const MINMAX_X: (isize, isize) = (-103, 55);
 const MINMAX_Y: (isize, isize) = (-6, 274);
-const IMAGE_X_OFFSET: isize = -MINMAX_X.0;
-const IMAGE_Y_OFFSET: isize = -MINMAX_Y.0;
-const IMAGE_WIDTH: usize = (IMAGE_X_OFFSET + MINMAX_X.1 + 1) as usize;
-const IMAGE_HEIGHT: usize = (IMAGE_Y_OFFSET + MINMAX_Y.1 + 1) as usize;
 const VISIT_POINTS_LENGTH: usize = 500;
 const MIN_COLOR_RED: usize = 100;
 
 pub fn solve_part1(file_name: &str) -> usize {
-    solve(2, file_name, false)
+    solve(file_name, 2, false)
 }
 
 pub fn solve_part2(file_name: &str) -> usize {
-    solve(10, file_name, SAVE_IMAGE)
+    solve(file_name, 10, SAVE_IMAGE)
 }
 
-fn solve(amount_of_knots: usize, file_name: &str, save_image: bool) -> usize {
-    let mut frame_vec: Vec<Frame> = Vec::new();
+fn solve(file_name: &str, amount_of_knots: usize, save_image: bool) -> usize {
+    let mut wurm: Wurm = Wurm::new(amount_of_knots, (0, 0), save_image);
+    wurm.apply_steps(parse_input_directions(file_name));
+    wurm.unique_count()
+}
 
-    let mut knots_vec: Vec<Position> = Vec::with_capacity(amount_of_knots);
-    for _ in 0..amount_of_knots {
-        knots_vec.push((0, 0));
-    }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    let mut visited_positions_head: Vec<Position> = Vec::new();
-    visited_positions_head.push((0, 0));
-    let mut visited_positions_tail: Vec<Position> = Vec::new();
-    visited_positions_tail.push((0, 0));
+type Position = (isize, isize);
 
-    for direction in parse_input_directions(file_name) {
-        apply_step(&mut knots_vec[0], direction);
-        fixup_tail_positions(&mut knots_vec);
+struct Wurm<'a> {
+    knots_vec: Vec<Position>,
+    save_image: bool,
+    visited_positions_head: Vec<Position>,
+    visited_positions_tail: Vec<Position>,
+    frame_vec: Vec<Frame<'a>>,
+}
 
-        visited_positions_tail.push(knots_vec[knots_vec.len() - 1]);
-        if GET_MINMAX || save_image {
-            visited_positions_head.push(knots_vec[0]);
-            if save_image {
-                add_frame_to_image(
-                    &visited_positions_tail,
-                    &knots_vec,
-                    amount_of_knots,
-                    &mut frame_vec,
-                );
-            }
+impl<'a> Wurm<'a> {
+    fn new(amount_of_knots: usize, start_pos: Position, save_image: bool) -> Self {
+        let knots_vec: Vec<Position> = vec![start_pos; amount_of_knots];
+        let mut visited_positions_head = Vec::new();
+        visited_positions_head.push(start_pos);
+        let mut visited_positions_tail = Vec::with_capacity(20000);
+        visited_positions_tail.push(start_pos);
+
+        Self {
+            knots_vec,
+            save_image: save_image && cfg!(not(test)),
+            visited_positions_head,
+            visited_positions_tail,
+            frame_vec: vec![],
         }
     }
 
-    if GET_MINMAX {
-        println!(
-            "minmax_x: {:?}, minmax_y: {:?}",
-            visited_positions_head.iter().map(|pos| pos.0).minmax(),
-            visited_positions_head.iter().map(|pos| pos.1).minmax()
-        );
+    fn get_last_tail(&self) -> Position {
+        self.knots_vec[self.knots_vec.len() - 1]
     }
 
-    if save_image {
-        save_gif(frame_vec);
+    fn get_head(&self) -> Position {
+        self.knots_vec[0]
     }
 
-    visited_positions_tail.into_iter().unique().count()
-}
+    fn apply_steps(&mut self, parse_input_directions: impl Iterator<Item = char>) {
+        for direction in parse_input_directions {
+            self.apply_step(direction);
+        }
+        self.print_minmax();
+        self.save_gif();
+    }
 
-fn fixup_tail_positions(knots_vec: &mut Vec<Position>) {
-    for index_head in 0..knots_vec.len() - 1 {
-        let index_tail = index_head + 1;
-        knots_vec[index_tail] = get_new_tail_pos(knots_vec[index_head], knots_vec[index_tail]);
+    fn apply_step(&mut self, direction: char) {
+        self.knots_vec[0] = self.get_new_position(direction);
+
+        self.fixup_tail_positions();
+        self.visited_positions_tail.push(self.get_last_tail());
+
+        self.save_frame();
+    }
+
+    fn get_new_position(&self, direction: char) -> Position {
+        let (pos_head_x, pos_head_y) = self.get_head();
+        match direction {
+            'R' => (pos_head_x + 1, pos_head_y),
+            'L' => (pos_head_x - 1, pos_head_y),
+            'U' => (pos_head_x, pos_head_y - 1),
+            'D' => (pos_head_x, pos_head_y + 1),
+            _ => panic!("Unknown direction {}", direction),
+        }
+    }
+
+    fn fixup_tail_positions(&mut self) {
+        for index_head in 0..self.knots_vec.len() - 1 {
+            let index_tail = index_head + 1;
+            self.knots_vec[index_tail] =
+                self.get_new_tail_pos(self.knots_vec[index_head], self.knots_vec[index_tail]);
+        }
+    }
+
+    fn get_new_tail_pos(&self, head_pos: Position, tail_pos: Position) -> Position {
+        if (head_pos.0 - tail_pos.0).abs() <= 1 && (head_pos.1 - tail_pos.1).abs() <= 1 {
+            // is touching
+            tail_pos
+        } else if head_pos.0 == tail_pos.0
+            || head_pos.1 == tail_pos.1
+            || (head_pos.0 - tail_pos.0).abs() == (head_pos.1 - tail_pos.1).abs()
+        {
+            // same row or same column or diagonal
+            (
+                head_pos.0 - (head_pos.0 - tail_pos.0).signum(),
+                head_pos.1 - (head_pos.1 - tail_pos.1).signum(),
+            )
+        } else if (head_pos.0 - tail_pos.0).abs() < (head_pos.1 - tail_pos.1).abs() {
+            // farer away in y direction
+            (head_pos.0, head_pos.1 - (head_pos.1 - tail_pos.1).signum())
+        } else {
+            // farer away in x direction
+            assert!(
+                (head_pos.0 - tail_pos.0).abs() > (head_pos.1 - tail_pos.1).abs(),
+                "pos_head: {:?}, pos_tail: {:?}",
+                head_pos,
+                tail_pos
+            );
+            (head_pos.0 - (head_pos.0 - tail_pos.0).signum(), head_pos.1)
+        }
+    }
+
+    fn unique_count(&self) -> usize {
+        self.visited_positions_tail.iter().unique().count()
+    }
+
+    fn should_save_image(&self) -> bool {
+        cfg!(not(test)) && self.save_image
+    }
+
+    fn should_print_minmax(&self) -> bool {
+        cfg!(not(test)) && GET_MINMAX
+    }
+
+    fn save_frame(&mut self) {
+        if self.should_print_minmax() || self.should_save_image() {
+            self.visited_positions_head.push(self.get_head());
+        }
+
+        if self.should_save_image() {
+            let image_width = (-MINMAX_Y.0 + MINMAX_Y.1 + 1) as u32;
+            let image_height = (-MINMAX_Y.0 + MINMAX_Y.1 + 1) as u32;
+
+            let mut img: RgbImage = ImageBuffer::new(image_width, image_height);
+            for (index, pos) in self.visited_positions_tail.iter().rev().enumerate() {
+                let color: u8 = if index > VISIT_POINTS_LENGTH {
+                    MIN_COLOR_RED as u8
+                } else {
+                    ((VISIT_POINTS_LENGTH - index) * (255 - MIN_COLOR_RED) / VISIT_POINTS_LENGTH
+                        + MIN_COLOR_RED) as u8
+                };
+                img.put_pixel(
+                    (-MINMAX_X.0 + pos.0) as u32,
+                    (-MINMAX_Y.0 + pos.1) as u32,
+                    image::Rgb([color, color, color]),
+                );
+            }
+            for (index, knot_pos) in (&self.knots_vec).iter().rev().enumerate() {
+                let color_value = ((index + 1) * 255 / self.knots_vec.len()) as u8;
+                img.put_pixel(
+                    (-MINMAX_X.0 + knot_pos.0) as u32,
+                    (-MINMAX_Y.0 + knot_pos.1) as u32,
+                    image::Rgb([color_value, 0, 0]),
+                );
+            }
+
+            self.frame_vec.push(Frame::from_rgb(
+                image_width as u16,
+                image_height as u16,
+                &img.into_raw(),
+            ));
+        }
+    }
+
+    fn print_minmax(&self) {
+        if self.should_print_minmax() {
+            println!(
+                "minmax_x: {:?}, minmax_y: {:?}",
+                self.visited_positions_head.iter().map(|pos| pos.0).minmax(),
+                self.visited_positions_head.iter().map(|pos| pos.1).minmax()
+            );
+        }
+    }
+
+    fn save_gif(&self) {
+        if cfg!(not(test)) && self.save_image {
+            println!("Saving image ....");
+            let mut image = File::create(r"c:\temp\day09.gif").unwrap();
+            let mut encoder = Encoder::new(
+                &mut image,
+                ((-MINMAX_X.0 + MINMAX_X.1 + 1) as usize) as u16,
+                ((-MINMAX_Y.0 + MINMAX_Y.1 + 1) as usize) as u16,
+                &[0xFF, 0xFF, 0xFF, 0, 0, 0],
+            )
+            .unwrap();
+            encoder.set_repeat(Repeat::Finite(1)).unwrap();
+            for frame in self.frame_vec.iter() {
+                encoder.write_frame(&frame).unwrap();
+            }
+        };
     }
 }
 
 fn parse_input_directions(file_name: &str) -> impl Iterator<Item = char> {
     parse_input(file_name).flat_map(|(direction, distance)| repeat(direction).take(distance))
-}
-
-fn get_new_tail_pos(head_pos: Position, tail_pos: Position) -> Position {
-    if is_touching(head_pos, tail_pos) {
-        tail_pos
-    } else if head_pos.0 == tail_pos.0
-        || head_pos.1 == tail_pos.1
-        || (head_pos.0 - tail_pos.0).abs() == (head_pos.1 - tail_pos.1).abs()
-    {
-        // same row or same column or diagonal
-        (
-            head_pos.0 - (head_pos.0 - tail_pos.0).signum(),
-            head_pos.1 - (head_pos.1 - tail_pos.1).signum(),
-        )
-    } else if (head_pos.0 - tail_pos.0).abs() < (head_pos.1 - tail_pos.1).abs() {
-        // farer away in y direction
-        (head_pos.0, head_pos.1 - (head_pos.1 - tail_pos.1).signum())
-    } else {
-        // farer away in x direction
-        assert!(
-            (head_pos.0 - tail_pos.0).abs() > (head_pos.1 - tail_pos.1).abs(),
-            "pos_head: {:?}, pos_tail: {:?}",
-            head_pos,
-            tail_pos
-        );
-        (head_pos.0 - (head_pos.0 - tail_pos.0).signum(), head_pos.1)
-    }
-}
-
-fn apply_step(pos_head: &mut Position, direction: char) {
-    match direction {
-        'R' => pos_head.0 += 1,
-        'L' => pos_head.0 -= 1,
-        'U' => pos_head.1 -= 1,
-        'D' => pos_head.1 += 1,
-        _ => panic!("Unknown direction {}", direction),
-    }
-}
-
-fn is_touching(pos_head: Position, pos_tail: Position) -> bool {
-    (pos_head.0 - pos_tail.0).abs() <= 1 && (pos_head.1 - pos_tail.1).abs() <= 1
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -158,54 +246,7 @@ fn parse_input(file_name: &str) -> impl Iterator<Item = (char, usize)> {
     })
 }
 
-fn add_frame_to_image(
-    visited_positions_tail: &Vec<Position>,
-    pos_knots_vec: &Vec<Position>,
-    amount_of_knots: usize,
-    frame_vec: &mut Vec<Frame>,
-) {
-    let mut img: RgbImage = ImageBuffer::new(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32);
-    for (index, pos) in visited_positions_tail.iter().rev().enumerate() {
-        let color: u8 = if index > VISIT_POINTS_LENGTH {
-            MIN_COLOR_RED as u8
-        } else {
-            ((VISIT_POINTS_LENGTH - index) * (255 - MIN_COLOR_RED) / VISIT_POINTS_LENGTH
-                + MIN_COLOR_RED) as u8
-        };
-        img.put_pixel(
-            (IMAGE_X_OFFSET + pos.0) as u32,
-            (IMAGE_Y_OFFSET + pos.1) as u32,
-            image::Rgb([color, color, color]),
-        );
-    }
-    for (index, knot_pos) in pos_knots_vec.iter().rev().enumerate() {
-        let color_value = ((index + 1) * 255 / amount_of_knots) as u8;
-        img.put_pixel(
-            (IMAGE_X_OFFSET + knot_pos.0) as u32,
-            (IMAGE_Y_OFFSET + knot_pos.1) as u32,
-            image::Rgb([color_value, 0, 0]),
-        );
-    }
-    let frame = Frame::from_rgb(IMAGE_WIDTH as u16, IMAGE_HEIGHT as u16, &img.into_raw());
-    frame_vec.push(frame);
-}
-
-fn save_gif(frame_vec: Vec<Frame>) {
-    println!("Saving image ....");
-    let mut image = File::create(r"c:\temp\day09.gif").unwrap();
-    let mut encoder = Encoder::new(
-        &mut image,
-        IMAGE_WIDTH as u16,
-        IMAGE_HEIGHT as u16,
-        &[0xFF, 0xFF, 0xFF, 0, 0, 0],
-    )
-    .unwrap();
-    encoder.set_repeat(Repeat::Finite(1)).unwrap();
-    for frame in frame_vec {
-        encoder.write_frame(&frame).unwrap();
-    }
-}
-
+#[allow(dead_code)]
 fn print_grid(pos_knots_vec: &Vec<Position>, min_pos: Position, max_pos: Position) {
     for y in min_pos.1..=max_pos.1 {
         for x in min_pos.0..=max_pos.0 {
