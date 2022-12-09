@@ -41,11 +41,14 @@ pub fn solve_part2(file_name: &str) -> usize {
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn create_forest_grid(file_name: &str) -> GridArray<u32> {
+type MyGridArrayItemType = u8;
+type MyGridArray = GridArray<MyGridArrayItemType>;
+
+fn create_forest_grid(file_name: &str) -> MyGridArray {
     let vecs = utils::file_to_lines(file_name)
-        .map(|line| line.chars().map(|c| c.to_digit(10).unwrap()).collect_vec())
+        .map(|line| line.chars().map(|c| c.to_digit(10).unwrap() as MyGridArrayItemType).collect_vec())
         .collect_vec();
-    let mut forest: GridArray<u32> = GridArrayBuilder::default()
+    let mut forest = GridArrayBuilder::default()
         .width(vecs[0].len())
         .height(vecs.len())
         .neighborhood(Neighborhood::Square)
@@ -76,7 +79,7 @@ fn to_bottom_iter(coor: Coor, _width: usize, _height: usize) -> impl Iterator<It
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn get_visible_trees<'a>(forest: &'a GridArray<u32>) -> impl Iterator<Item = Coor> + 'a {
+fn get_visible_trees<'a>(forest: &'a MyGridArray) -> impl Iterator<Item = Coor> + 'a {
     forest
         .all_cells()
         .filter(move |(coor, tree_size)| {
@@ -107,21 +110,21 @@ fn get_visible_trees<'a>(forest: &'a GridArray<u32>) -> impl Iterator<Item = Coo
 
 fn all_smaller(
     mut iter: impl Iterator<Item = Coor>,
-    forest: &GridArray<u32>,
-    tree_size: &u32,
+    forest: &MyGridArray,
+    tree_size: &MyGridArrayItemType,
 ) -> bool {
     iter.all(|(coor2_x, coor2_y)| forest.get(coor2_x, coor2_y).unwrap() < tree_size)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn calc_scenic_scores<'a>(forest: &'a GridArray<u32>) -> impl Iterator<Item = (Coor, usize)> + 'a {
+fn calc_scenic_scores<'a>(forest: &'a MyGridArray) -> impl Iterator<Item = (Coor, usize)> + 'a {
     forest
         .all_cells()
         .map(move |(coor, tree_size)| (coor, calc_scenic_score_x_y(forest, coor, *tree_size)))
 }
 
-fn calc_scenic_score_x_y(forest: &GridArray<u32>, coor: Coor, tree_size: u32) -> usize {
+fn calc_scenic_score_x_y(forest: &MyGridArray, coor: Coor, tree_size: MyGridArrayItemType) -> usize {
     let scenic_score_left = amount_of_trees_visible_for_house(
         to_left_iter(coor, forest.get_width(), forest.get_height()),
         forest,
@@ -154,8 +157,8 @@ fn calc_scenic_score_x_y(forest: &GridArray<u32>, coor: Coor, tree_size: u32) ->
 
 fn amount_of_trees_visible_for_house(
     iter: impl Iterator<Item = Coor>,
-    forest: &GridArray<u32>,
-    tree_size: u32,
+    forest: &MyGridArray,
+    tree_size: MyGridArrayItemType,
 ) -> usize {
     let mut amount_of_trees = 0;
     for (coor2_x, coor2_y) in iter {
