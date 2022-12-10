@@ -22,12 +22,12 @@ fn main() {
 ////////////////////////////////////////////////////////////////////////////////////
 
 pub fn solve_part1(file_name: &str) -> usize {
-    let input = utils::file_to_lines(file_name);
+    let _input = utils::file_to_lines(file_name);
     42
 }
 
 pub fn solve_part2(file_name: &str) -> usize {
-    let input = utils::file_to_lines(file_name);
+    let _input = utils::file_to_lines(file_name);
     42
 }
 
