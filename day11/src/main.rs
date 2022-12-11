@@ -26,68 +26,82 @@ const DEBUG_PRINT: bool = false;
 ////////////////////////////////////////////////////////////////////////////////////
 
 pub fn solve_part1(file_name: &str) -> usize {
-    let monkey_vec = parse(file_name);
-    do_rounds(20, monkey_vec, None)
-        .into_iter()
-        .map(|m| m.item_inspection_count)
-        .sorted()
-        .rev()
-        .take(2)
-        .product()
+    MonkeyGame::new(file_name, 20, true).solve()
 }
 
 pub fn solve_part2(file_name: &str) -> usize {
-    let monkey_vec = parse(file_name);
-    let divisible_product = Some(monkey_vec.iter().map(|m| m.divisible_by).product());
-    do_rounds(10000, monkey_vec, divisible_product)
-        .into_iter()
-        .map(|m| m.item_inspection_count)
-        .sorted()
-        .rev()
-        .take(2)
-        .product()
+    MonkeyGame::new(file_name, 10000, false).solve()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-
-fn parse(file_name: &str) -> Vec<Monkey> {
-    utils::file_to_lines(file_name)
-        .chunks(7)
-        .into_iter()
-        .map(Monkey::new)
-        .collect_vec()
+///
+struct MonkeyGame {
+    monkey_vec: Vec<Monkey>,
+    rounds: usize,
+    product_of_divisible: usize,
+    divide_by_3: bool,
 }
 
-fn do_rounds(
-    rounds: usize,
-    mut monkey_vec: Vec<Monkey>,
-    product_of_divisible: Option<usize>,
-) -> Vec<Monkey> {
-    for _round in 1..=rounds {
-        for monkey_index in 0..monkey_vec.len() {
-            while let Some(item) = monkey_vec[monkey_index].items.pop_front() {
-                let monkey = &mut monkey_vec[monkey_index];
-                let new_item = monkey.inspect_item(item, product_of_divisible);
-                let new_monkey_index = monkey.get_next_monkey(new_item);
-                monkey_vec[new_monkey_index].items.push_back(new_item);
-            }
-        }
-
-        if DEBUG_PRINT {
-            println!(
-                "After round {}, the monkeys are holding items with these worry levels:",
-                _round
-            );
-            for (monkey_index, monkey) in monkey_vec.iter().enumerate() {
-                println!(
-                    "Monkey {}: {:?}",
-                    monkey_index,
-                    monkey.items.iter().join(", ")
-                );
-            }
+impl MonkeyGame {
+    fn new(file_name: &str, rounds: usize, divide_by_3: bool) -> MonkeyGame {
+        let monkey_vec = utils::file_to_lines(file_name)
+            .chunks(7)
+            .into_iter()
+            .map(Monkey::new)
+            .collect_vec();
+        let product_of_divisible = monkey_vec.iter().map(|m| m.divisible_by).product();
+        MonkeyGame {
+            monkey_vec,
+            rounds,
+            product_of_divisible,
+            divide_by_3,
         }
     }
-    monkey_vec
+
+    fn solve(&mut self) -> usize {
+        for _round in 1..=self.rounds {
+            (0..self.monkey_vec.len()).for_each(|i| self.do_round_for_monkey(i));
+
+            if DEBUG_PRINT {
+                println!(
+                    "After round {}, the monkeys are holding items with these worry levels:",
+                    _round
+                );
+                for (monkey_index, monkey) in self.monkey_vec.iter().enumerate() {
+                    println!(
+                        "Monkey {}: {:?}",
+                        monkey_index,
+                        monkey.items.iter().join(", ")
+                    );
+                }
+            }
+        }
+        self.calc_solution()
+    }
+
+    fn calc_solution(&mut self) -> usize {
+        self.monkey_vec
+            .iter()
+            .map(|m| m.item_inspection_count)
+            .sorted()
+            .rev()
+            .take(2)
+            .product()
+    }
+
+    fn do_round_for_monkey(&mut self, monkey_index: usize) {
+        while let Some(item) = self.monkey_vec[monkey_index].items.pop_front() {
+            let (new_item, new_monkey_index) = self.inspect_and_get_new_monkey(monkey_index, item);
+            self.monkey_vec[new_monkey_index].items.push_back(new_item);
+        }
+    }
+
+    fn inspect_and_get_new_monkey(&mut self, monkey_index: usize, item: usize) -> (usize, usize) {
+        let monkey = &mut self.monkey_vec[monkey_index];
+        let new_item = monkey.inspect_item(item, self.product_of_divisible, self.divide_by_3);
+        let new_monkey_index = monkey.get_next_monkey_index(new_item);
+        (new_item, new_monkey_index)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -101,7 +115,7 @@ struct Monkey {
 }
 
 impl Monkey {
-    fn get_next_monkey(&self, item: usize) -> usize {
+    fn get_next_monkey_index(&self, item: usize) -> usize {
         if item % self.divisible_by == 0 {
             self.monkey_index_true
         } else {
@@ -109,15 +123,18 @@ impl Monkey {
         }
     }
 
-    fn inspect_item(&mut self, item: usize, product_of_divisible: Option<usize>) -> usize {
+    fn inspect_item(
+        &mut self,
+        item: usize,
+        product_of_divisible: usize,
+        divide_by_3: bool,
+    ) -> usize {
         self.item_inspection_count += 1;
-        let result = self.op.apply(item);
-        if let Some(product_of_divisible) = product_of_divisible {
-            // the result can be reduced as long as it is still divisible by all monkeys
-            result % product_of_divisible
-        } else {
-            result / 3
+        let mut result = self.op.apply(item);
+        if divide_by_3 {
+            result /= 3;
         }
+        result % product_of_divisible
     }
 
     fn new(money: itertools::Chunk<impl Iterator<Item = String>>) -> Monkey {
@@ -173,18 +190,17 @@ impl FromStr for Operation {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (op, operand) = s.split_whitespace().collect_tuple().unwrap();
-        let op = match op {
-            "+" => Operation::Add(utils::str_to(operand)),
+        match op {
+            "+" => Ok(Operation::Add(utils::str_to(operand))),
             "*" => {
                 if operand == "old" {
-                    Operation::Square
+                    Ok(Operation::Square)
                 } else {
-                    Operation::Mul(utils::str_to(operand))
+                    Ok(Operation::Mul(utils::str_to(operand)))
                 }
             }
             _ => unreachable!(),
-        };
-        Ok(op)
+        }
     }
 }
 

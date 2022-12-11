@@ -43,7 +43,7 @@ pub fn file_to_string(file_name: &str) -> String {
 pub fn file_to_lines(file_name: &str) -> impl Iterator<Item = String> {
     BufReader::new(File::open(correct_folder(file_name)).unwrap())
         .lines()
-        .map(|line| line.unwrap())
+        .flatten()
 }
 
 /// Converts an iterator with str to an iterator with "T"
