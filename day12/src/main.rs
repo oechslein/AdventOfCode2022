@@ -84,7 +84,10 @@ fn get_successor<'a>(
         .filter_map(move |neighbor_cell| weight_fn(curr_cell.clone(), neighbor_cell))
 }
 
-fn get_weigth(curr_cell: (Coor2D, &char), neighbor_cell: (Coor2D, &char)) -> Option<(Coor2D, usize)> {
+fn get_weigth(
+    curr_cell: (Coor2D, &char),
+    neighbor_cell: (Coor2D, &char),
+) -> Option<(Coor2D, usize)> {
     let (curr_cell_number, neighbor_cell_number) =
         (get_value(*curr_cell.1), get_value(*neighbor_cell.1));
     if (neighbor_cell_number <= curr_cell_number) || (neighbor_cell_number == curr_cell_number + 1)

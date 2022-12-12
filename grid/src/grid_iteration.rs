@@ -1,7 +1,8 @@
 //! Manipulating 2d grids
 
 use super::grid_types::{
-    Coor2D, Coor2DIndex, Direction, Direction::*, Neighborhood, Neighborhood::*, Topology, Topology::*,
+    Coor2D, Coor2DIndex, Direction, Direction::*, Neighborhood, Neighborhood::*, Topology,
+    Topology::*,
 };
 
 /// Get the adjacent point to a point in a given direction
@@ -63,7 +64,12 @@ pub(crate) fn is_edge(t: Topology, width: Coor2DIndex, height: Coor2DIndex, inde
 }
 
 /// Is a given point a corner of a grid
-pub(crate) fn is_corner(t: Topology, width: Coor2DIndex, height: Coor2DIndex, index: Coor2D) -> bool {
+pub(crate) fn is_corner(
+    t: Topology,
+    width: Coor2DIndex,
+    height: Coor2DIndex,
+    index: Coor2D,
+) -> bool {
     let (x, y) = (index.x, index.y);
     t == Topology::Bounded && (x == 0 || x + 1 == width) && (y == 0 || y + 1 == height)
 }
@@ -202,17 +208,33 @@ mod tests {
             ]),
         );
         assert_eq!(
-            neighborhood_cells(Bounded, 5, 5, Coor2D::new(0, 0), Square).collect::<HashSet<Coor2D>>(),
+            neighborhood_cells(Bounded, 5, 5, Coor2D::new(0, 0), Square)
+                .collect::<HashSet<Coor2D>>(),
             HashSet::from([Coor2D::new(0, 1), Coor2D::new(1, 0), Coor2D::new(1, 1)]),
         );
     }
 
     #[test]
     fn manhattan_distance_test() {
-        assert_eq!(manhattan_distance(Coor2D::new(11, 13), Coor2D::new(11, 13)), 0);
-        assert_eq!(manhattan_distance(Coor2D::new(11, 13), Coor2D::new(11, 12)), 1);
-        assert_eq!(manhattan_distance(Coor2D::new(11, 13), Coor2D::new(11, 14)), 1);
-        assert_eq!(manhattan_distance(Coor2D::new(11, 13), Coor2D::new(10, 13)), 1);
-        assert_eq!(manhattan_distance(Coor2D::new(11, 13), Coor2D::new(10, 12)), 2);
+        assert_eq!(
+            manhattan_distance(Coor2D::new(11, 13), Coor2D::new(11, 13)),
+            0
+        );
+        assert_eq!(
+            manhattan_distance(Coor2D::new(11, 13), Coor2D::new(11, 12)),
+            1
+        );
+        assert_eq!(
+            manhattan_distance(Coor2D::new(11, 13), Coor2D::new(11, 14)),
+            1
+        );
+        assert_eq!(
+            manhattan_distance(Coor2D::new(11, 13), Coor2D::new(10, 13)),
+            1
+        );
+        assert_eq!(
+            manhattan_distance(Coor2D::new(11, 13), Coor2D::new(10, 12)),
+            2
+        );
     }
 }

@@ -331,7 +331,9 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
     pub fn rotate_cw(&mut self) {
         // rotate clockwise by 90°
         self._transform(
-            (0..self.width).cartesian_product((0..self.height).rev()).map(Coor2D::from_tuple),
+            (0..self.width)
+                .cartesian_product((0..self.height).rev())
+                .map(Coor2D::from_tuple),
             true,
         );
     }
@@ -340,7 +342,9 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
     pub fn rotate_ccw(&mut self) {
         // rotate counter clockwise by 90°
         self._transform(
-            ((0..self.width).rev()).cartesian_product(0..self.height).map(Coor2D::from_tuple),
+            ((0..self.width).rev())
+                .cartesian_product(0..self.height)
+                .map(Coor2D::from_tuple),
             true,
         );
     }

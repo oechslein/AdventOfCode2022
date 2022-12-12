@@ -66,19 +66,28 @@ fn create_forest_grid(file_name: &str) -> MyGridArray {
 }
 
 fn to_left_iter(coor: Coor2D, _width: usize, _height: usize) -> impl Iterator<Item = Coor2D> {
-    (0..coor.x).rev().zip(repeat(coor.y)).map(Coor2D::from_tuple)
+    (0..coor.x)
+        .rev()
+        .zip(repeat(coor.y))
+        .map(Coor2D::from_tuple)
 }
 
 fn to_right_iter(coor: Coor2D, _width: usize, _height: usize) -> impl Iterator<Item = Coor2D> {
-    (coor.x + 1.._width).zip(repeat(coor.y)).map(Coor2D::from_tuple)
+    (coor.x + 1.._width)
+        .zip(repeat(coor.y))
+        .map(Coor2D::from_tuple)
 }
 
 fn to_top_iter(coor: Coor2D, _width: usize, _height: usize) -> impl Iterator<Item = Coor2D> {
-    repeat(coor.x).zip((0..coor.y).rev()).map(Coor2D::from_tuple)
+    repeat(coor.x)
+        .zip((0..coor.y).rev())
+        .map(Coor2D::from_tuple)
 }
 
 fn to_bottom_iter(coor: Coor2D, _width: usize, _height: usize) -> impl Iterator<Item = Coor2D> {
-    repeat(coor.x).zip(coor.y + 1.._height).map(Coor2D::from_tuple)
+    repeat(coor.x)
+        .zip(coor.y + 1.._height)
+        .map(Coor2D::from_tuple)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -123,9 +132,12 @@ fn all_smaller(
 ////////////////////////////////////////////////////////////////////////////////////
 
 fn calc_scenic_scores<'a>(forest: &'a MyGridArray) -> impl Iterator<Item = (Coor2D, usize)> + 'a {
-    forest
-        .all_cells()
-        .map(move |(coor, tree_size)| (coor.clone(), calc_scenic_score_x_y(forest, coor, *tree_size)))
+    forest.all_cells().map(move |(coor, tree_size)| {
+        (
+            coor.clone(),
+            calc_scenic_score_x_y(forest, coor, *tree_size),
+        )
+    })
 }
 
 fn calc_scenic_score_x_y(
