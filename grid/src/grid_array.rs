@@ -43,12 +43,11 @@ impl GridArray<char> {
         let width = input
             .chars()
             .enumerate()
-            .filter(|(_, x)| *x == '\n')
+            .filter(|(_, x)| *x == '\n' || *x == '\r')
             .take(1)
             .next()
             .unwrap()
-            .0
-            - 1;
+            .0;
         let data = input
             .chars()
             .filter(|x| *x != '\n' && *x != '\r')
