@@ -15,8 +15,8 @@ use itertools::Itertools;
 /// The main function prints out the results for part1 and part2
 /// AOC
 fn main() {
-    utils::with_measure("Part 1", || solve_part1("day13/test.txt"));
-    utils::with_measure("Part 2", || solve_part2("day13/test.txt"));
+    utils::with_measure("Part 1", || solve_part1("day19/test.txt"));
+    utils::with_measure("Part 2", || solve_part2("day19/test.txt"));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
