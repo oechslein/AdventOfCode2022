@@ -28,12 +28,12 @@ fn main() {
 pub fn solve_part1(file_name: &str) -> usize {
     let grid = parse_grid(file_name);
 
-    let goal_pos = find_first_pos(&grid, 'E');
-    let start_pos = find_first_pos(&grid, 'S');
+    let goal_pos = &find_first_pos(&grid, 'E');
+    let start_pos = &find_first_pos(&grid, 'S');
     let result = dijkstra(
-        &start_pos,
+        start_pos,
         |coor| get_successor(&grid, *coor, get_weigth),
-        |coor| *coor == goal_pos,
+        |coor| coor == goal_pos,
     );
     //println!("{:?}", result);
     result.map(|result| result.1).unwrap()
@@ -43,14 +43,14 @@ pub fn solve_part2(file_name: &str) -> usize {
     let grid = parse_grid(file_name);
 
     // search from goal to any start pos
-    let start_pos = find_first_pos(&grid, 'E');
+    let goal_pos = &find_first_pos(&grid, 'E');
 
     let result = dijkstra(
-        &start_pos,
+        goal_pos,
         |coor| get_successor(&grid, *coor, get_weigth_reverse),
         |(x, y)| {
-            let c = grid.get_unchecked(*x, *y);
-            *c == 'S' || *c == 'a'
+            let c = *grid.get_unchecked(*x, *y);
+            c == 'S' || c == 'a'
         },
     );
     //println!("{:?}", result);
