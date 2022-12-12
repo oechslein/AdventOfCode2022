@@ -159,7 +159,8 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
         }
     }
 
-    fn get_unchecked(&self, x: CoorIndex, y: CoorIndex) -> &T {
+    /// get reference to element on x, y
+    pub fn get_unchecked(&self, x: CoorIndex, y: CoorIndex) -> &T {
         &self.data[self.index_to_vec_index(x, y)]
     }
 

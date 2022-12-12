@@ -28,48 +28,80 @@ fn main() {
 pub fn solve_part1(file_name: &str) -> usize {
     let grid = parse_grid(file_name);
 
-    get_lowest_steps(
-        &grid,
-        find_first_pos(&grid, 'S'),
-        find_first_pos(&grid, 'E'),
-    )
-    .unwrap()
+    let goal_pos = find_first_pos(&grid, 'E');
+    let start_pos = find_first_pos(&grid, 'S');
+    let result = dijkstra(
+        &start_pos,
+        |coor| get_successor(&grid, *coor, get_weigth),
+        |coor| *coor == goal_pos,
+    );
+    //println!("{:?}", result);
+    result.map(|result| result.1).unwrap()
 }
 
 pub fn solve_part2(file_name: &str) -> usize {
     let grid = parse_grid(file_name);
-    let goal_pos = find_first_pos(&grid, 'E');
 
-    grid.all_cells()
-        .filter(|(_, c)| **c == 'S' || **c == 'a')
-        .filter_map(|start_pos| get_lowest_steps(&grid, start_pos.0, goal_pos))
-        .min()
-        .unwrap()
+    // search from goal to any start pos
+    let start_pos = find_first_pos(&grid, 'E');
+
+    let result = dijkstra(
+        &start_pos,
+        |coor| get_successor(&grid, *coor, get_weigth_reverse),
+        |(x, y)| {
+            let c = grid.get_unchecked(*x, *y);
+            *c == 'S' || *c == 'a'
+        },
+    );
+    //println!("{:?}", result);
+    result.map(|result| result.1).unwrap()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn find_first_pos(grid: &GridArray<char>, find_char: char) -> Coor {
-    grid.all_cells()
-        .filter(|(_, c)| **c == find_char)
-        .next()
-        .unwrap()
-        .0
+fn get_lowest_steps(
+    grid: &GridArray<char>,
+    start_pos: Coor,
+    weight_fn: fn((Coor, &char), (Coor, &char)) -> Option<(Coor, usize)>,
+    is_goal_fn: impl Fn(Coor) -> bool,
+) -> Option<usize> {
+    let result = dijkstra(
+        &start_pos,
+        |coor| get_successor(&grid, *coor, weight_fn),
+        |coor| is_goal_fn(*coor),
+    );
+    //println!("{:?}", result);
+    result.map(|result| result.1)
 }
 
 fn get_successor<'a>(
     grid: &'a GridArray<char>,
     coor: Coor,
+    weight_fn: fn((Coor, &char), (Coor, &char)) -> Option<(Coor, usize)>,
 ) -> impl IntoIterator<Item = (Coor, usize)> + 'a {
-    let curr_cell = (coor, grid.get(coor.0, coor.1).unwrap());
+    let curr_cell = (coor, grid.get_unchecked(coor.0, coor.1));
     grid.neighborhood_cells(coor.0, coor.1)
-        .filter_map(move |neighbor_cell| get_weigth(curr_cell, neighbor_cell))
+        .filter_map(move |neighbor_cell| weight_fn(curr_cell, neighbor_cell))
 }
 
 fn get_weigth(curr_cell: (Coor, &char), neighbor_cell: (Coor, &char)) -> Option<(Coor, usize)> {
-    let curr_cell_number = get_value(*curr_cell.1);
-    let neighbor_cell_number = get_value(*neighbor_cell.1);
+    let (curr_cell_number, neighbor_cell_number) =
+        (get_value(*curr_cell.1), get_value(*neighbor_cell.1));
     if (neighbor_cell_number <= curr_cell_number) || (neighbor_cell_number == curr_cell_number + 1)
+    {
+        Some((neighbor_cell.0, 1))
+    } else {
+        None
+    }
+}
+
+fn get_weigth_reverse(
+    curr_cell: (Coor, &char),
+    neighbor_cell: (Coor, &char),
+) -> Option<(Coor, usize)> {
+    let (curr_cell_number, neighbor_cell_number) =
+        (get_value(*curr_cell.1), get_value(*neighbor_cell.1));
+    if (neighbor_cell_number >= curr_cell_number) || (neighbor_cell_number == curr_cell_number - 1)
     {
         Some((neighbor_cell.0, 1))
     } else {
@@ -85,6 +117,14 @@ fn get_value(cell: char) -> u32 {
     }
 }
 
+fn find_first_pos(grid: &GridArray<char>, find_char: char) -> Coor {
+    grid.all_cells()
+        .filter(|(_, c)| **c == find_char)
+        .next()
+        .unwrap()
+        .0
+}
+
 fn parse_grid(file_name: &str) -> GridArray<char> {
     let input = utils::file_to_string(file_name);
     let grid = GridArray::from_newline_separated_string(
@@ -94,16 +134,6 @@ fn parse_grid(file_name: &str) -> GridArray<char> {
     );
     //grid.print();
     grid
-}
-
-fn get_lowest_steps(grid: &GridArray<char>, start_pos: Coor, goal_pos: Coor) -> Option<usize> {
-    let result = dijkstra(
-        &start_pos,
-        |coor| get_successor(&grid, *coor),
-        |coor| *coor == goal_pos,
-    );
-    //println!("{:?}", result);
-    result.map(|result| result.1)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
