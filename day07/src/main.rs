@@ -175,6 +175,7 @@ impl FileSystemObject {
         result.into_iter()
     }
 
+    #[allow(dead_code)]
     fn bfs_fn(&self, visit_fn: fn(&FileSystemObject)) {
         visit_fn(self);
         match self {
