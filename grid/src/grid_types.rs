@@ -1,15 +1,14 @@
 //! Types grids
 
-/// CellIndexCoorType
-pub type CoorIndex = usize;
-/// CellIndexType
-pub type Coor = (CoorIndex, CoorIndex);
-
-/*
 use derive_more::{Add, AddAssign, Constructor, Display, Sub, SubAssign};
-use std::convert::AsRef;
 
+/// CellIndexCoorType
+pub type Coor2DIndex = usize;
+/// CellIndexType
+//pub type Coor = (CoorIndex, CoorIndex);
+pub type Coor2D = Coor2DMut<Coor2DIndex>;
 
+/// Coor
 #[derive(
     Eq,
     PartialEq,
@@ -29,23 +28,29 @@ use std::convert::AsRef;
 )]
 //#[into(owned, ref, ref_mut)]
 #[display(fmt = "({},{})", x, y)]
-struct CoorMut {
-    pub x: CoorIndex,
-    pub y: CoorIndex,
+pub struct Coor2DMut<T: Clone> {
+    /// x
+    pub x: T,
+    /// y
+    pub y: T,
 }
 
-impl From<(CoorIndex, CoorIndex)> for CoorMut {
-    fn from(t: (CoorIndex, CoorIndex)) -> Self {
-        CoorMut { x: t.0, y: t.1 }
+impl<T: Clone> From<(T, T)> for Coor2DMut<T> {
+    fn from(t: (T, T)) -> Self {
+        Coor2DMut { x: t.0, y: t.1 }
     }
 }
 
-impl<T: ?Sized> AsRef<(T,T)> for CoorMut where T: From<CoorIndex> {
-    fn as_ref(&self) -> &(T, T) {
-        &(self.x.into(), self.y.into())
+impl<T: Clone> Coor2DMut<T> {
+    /// to tuples
+    pub fn to_tuple(&self) -> (T, T) {
+        (self.x.clone(), self.y.clone())
+    }
+    /// from tuples
+    pub fn from_tuple(t: (T, T)) -> Self {
+        Self::new(t.0, t.1)
     }
 }
- */
 
 /// A type of topology
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

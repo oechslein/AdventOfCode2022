@@ -10,7 +10,7 @@
 )]
 
 use grid::grid_array::{GridArray, GridArrayBuilder};
-use grid::grid_types::{Coor, Neighborhood, Topology};
+use grid::grid_types::{Coor2D, Neighborhood, Topology};
 use itertools::Itertools;
 
 use pathfinding::prelude::dijkstra;
@@ -32,7 +32,7 @@ pub fn solve_part1(file_name: &str) -> usize {
     let start_pos = &find_first_pos(&grid, 'S');
     let result = dijkstra(
         start_pos,
-        |coor| get_successor(&grid, *coor, get_weigth),
+        |coor| get_successor(&grid, &coor, get_weigth),
         |coor| coor == goal_pos,
     );
     //println!("{:?}", result);
@@ -47,9 +47,9 @@ pub fn solve_part2(file_name: &str) -> usize {
 
     let result = dijkstra(
         goal_pos,
-        |coor| get_successor(&grid, *coor, get_weigth_reverse),
-        |(x, y)| {
-            let c = *grid.get_unchecked(*x, *y);
+        |coor| get_successor(&grid, coor, get_weigth_reverse),
+        |coor| {
+            let c = *grid.get_unchecked(coor.x, coor.y);
             c == 'S' || c == 'a'
         },
     );
@@ -61,14 +61,14 @@ pub fn solve_part2(file_name: &str) -> usize {
 
 fn get_lowest_steps(
     grid: &GridArray<char>,
-    start_pos: Coor,
-    weight_fn: fn((Coor, &char), (Coor, &char)) -> Option<(Coor, usize)>,
-    is_goal_fn: impl Fn(Coor) -> bool,
+    start_pos: Coor2D,
+    weight_fn: fn((Coor2D, &char), (Coor2D, &char)) -> Option<(Coor2D, usize)>,
+    is_goal_fn: impl Fn(&Coor2D) -> bool,
 ) -> Option<usize> {
     let result = dijkstra(
         &start_pos,
-        |coor| get_successor(&grid, *coor, weight_fn),
-        |coor| is_goal_fn(*coor),
+        |coor| get_successor(&grid, &coor, weight_fn),
+        |coor| is_goal_fn(coor),
     );
     //println!("{:?}", result);
     result.map(|result| result.1)
@@ -76,15 +76,15 @@ fn get_lowest_steps(
 
 fn get_successor<'a>(
     grid: &'a GridArray<char>,
-    coor: Coor,
-    weight_fn: fn((Coor, &char), (Coor, &char)) -> Option<(Coor, usize)>,
-) -> impl IntoIterator<Item = (Coor, usize)> + 'a {
-    let curr_cell = (coor, grid.get_unchecked(coor.0, coor.1));
-    grid.neighborhood_cells(coor.0, coor.1)
-        .filter_map(move |neighbor_cell| weight_fn(curr_cell, neighbor_cell))
+    coor: &Coor2D,
+    weight_fn: fn((Coor2D, &char), (Coor2D, &char)) -> Option<(Coor2D, usize)>,
+) -> impl IntoIterator<Item = (Coor2D, usize)> + 'a {
+    let curr_cell = (coor.clone(), grid.get_unchecked(coor.x, coor.y));
+    grid.neighborhood_cells(coor.x.clone(), coor.y.clone())
+        .filter_map(move |neighbor_cell| weight_fn(curr_cell.clone(), neighbor_cell))
 }
 
-fn get_weigth(curr_cell: (Coor, &char), neighbor_cell: (Coor, &char)) -> Option<(Coor, usize)> {
+fn get_weigth(curr_cell: (Coor2D, &char), neighbor_cell: (Coor2D, &char)) -> Option<(Coor2D, usize)> {
     let (curr_cell_number, neighbor_cell_number) =
         (get_value(*curr_cell.1), get_value(*neighbor_cell.1));
     if (neighbor_cell_number <= curr_cell_number) || (neighbor_cell_number == curr_cell_number + 1)
@@ -96,9 +96,9 @@ fn get_weigth(curr_cell: (Coor, &char), neighbor_cell: (Coor, &char)) -> Option<
 }
 
 fn get_weigth_reverse(
-    curr_cell: (Coor, &char),
-    neighbor_cell: (Coor, &char),
-) -> Option<(Coor, usize)> {
+    curr_cell: (Coor2D, &char),
+    neighbor_cell: (Coor2D, &char),
+) -> Option<(Coor2D, usize)> {
     let (curr_cell_number, neighbor_cell_number) =
         (get_value(*curr_cell.1), get_value(*neighbor_cell.1));
     if (neighbor_cell_number >= curr_cell_number) || (neighbor_cell_number == curr_cell_number - 1)
@@ -117,7 +117,7 @@ fn get_value(cell: char) -> u32 {
     }
 }
 
-fn find_first_pos(grid: &GridArray<char>, find_char: char) -> Coor {
+fn find_first_pos(grid: &GridArray<char>, find_char: char) -> Coor2D {
     grid.all_cells()
         .filter(|(_, c)| **c == find_char)
         .next()

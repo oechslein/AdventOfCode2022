@@ -13,7 +13,7 @@ use std::iter::repeat;
 
 use grid::{
     grid_array::{GridArray, GridArrayBuilder},
-    grid_types::{Coor, Neighborhood, Topology},
+    grid_types::{Coor2D, Neighborhood, Topology},
 };
 use itertools::Itertools;
 
@@ -65,46 +65,46 @@ fn create_forest_grid(file_name: &str) -> MyGridArray {
     forest
 }
 
-fn to_left_iter(coor: Coor, _width: usize, _height: usize) -> impl Iterator<Item = Coor> {
-    (0..coor.0).rev().zip(repeat(coor.1))
+fn to_left_iter(coor: Coor2D, _width: usize, _height: usize) -> impl Iterator<Item = Coor2D> {
+    (0..coor.x).rev().zip(repeat(coor.y)).map(Coor2D::from_tuple)
 }
 
-fn to_right_iter(coor: Coor, _width: usize, _height: usize) -> impl Iterator<Item = Coor> {
-    (coor.0 + 1.._width).zip(repeat(coor.1))
+fn to_right_iter(coor: Coor2D, _width: usize, _height: usize) -> impl Iterator<Item = Coor2D> {
+    (coor.x + 1.._width).zip(repeat(coor.y)).map(Coor2D::from_tuple)
 }
 
-fn to_top_iter(coor: Coor, _width: usize, _height: usize) -> impl Iterator<Item = Coor> {
-    repeat(coor.0).zip((0..coor.1).rev())
+fn to_top_iter(coor: Coor2D, _width: usize, _height: usize) -> impl Iterator<Item = Coor2D> {
+    repeat(coor.x).zip((0..coor.y).rev()).map(Coor2D::from_tuple)
 }
 
-fn to_bottom_iter(coor: Coor, _width: usize, _height: usize) -> impl Iterator<Item = Coor> {
-    repeat(coor.0).zip(coor.1 + 1.._height)
+fn to_bottom_iter(coor: Coor2D, _width: usize, _height: usize) -> impl Iterator<Item = Coor2D> {
+    repeat(coor.x).zip(coor.y + 1.._height).map(Coor2D::from_tuple)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn get_visible_trees<'a>(forest: &'a MyGridArray) -> impl Iterator<Item = Coor> + 'a {
+fn get_visible_trees<'a>(forest: &'a MyGridArray) -> impl Iterator<Item = Coor2D> + 'a {
     forest
         .all_cells()
         .filter(move |(coor, tree_size)| {
-            forest.is_edge(coor.0, coor.1)
+            forest.is_edge(coor.x, coor.y)
                 || all_smaller(
-                    to_left_iter(*coor, forest.get_width(), forest.get_height()),
+                    to_left_iter(coor.clone(), forest.get_width(), forest.get_height()),
                     &forest,
                     *tree_size,
                 )
                 || all_smaller(
-                    to_right_iter(*coor, forest.get_width(), forest.get_height()),
+                    to_right_iter(coor.clone(), forest.get_width(), forest.get_height()),
                     &forest,
                     *tree_size,
                 )
                 || all_smaller(
-                    to_top_iter(*coor, forest.get_width(), forest.get_height()),
+                    to_top_iter(coor.clone(), forest.get_width(), forest.get_height()),
                     &forest,
                     *tree_size,
                 )
                 || all_smaller(
-                    to_bottom_iter(*coor, forest.get_width(), forest.get_height()),
+                    to_bottom_iter(coor.clone(), forest.get_width(), forest.get_height()),
                     &forest,
                     *tree_size,
                 )
@@ -113,43 +113,43 @@ fn get_visible_trees<'a>(forest: &'a MyGridArray) -> impl Iterator<Item = Coor> 
 }
 
 fn all_smaller(
-    mut iter: impl Iterator<Item = Coor>,
+    mut iter: impl Iterator<Item = Coor2D>,
     forest: &MyGridArray,
     tree_size: &MyGridArrayItemType,
 ) -> bool {
-    iter.all(|(coor2_x, coor2_y)| forest.get(coor2_x, coor2_y).unwrap() < tree_size)
+    iter.all(|coor2| forest.get(coor2.x, coor2.y).unwrap() < tree_size)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn calc_scenic_scores<'a>(forest: &'a MyGridArray) -> impl Iterator<Item = (Coor, usize)> + 'a {
+fn calc_scenic_scores<'a>(forest: &'a MyGridArray) -> impl Iterator<Item = (Coor2D, usize)> + 'a {
     forest
         .all_cells()
-        .map(move |(coor, tree_size)| (coor, calc_scenic_score_x_y(forest, coor, *tree_size)))
+        .map(move |(coor, tree_size)| (coor.clone(), calc_scenic_score_x_y(forest, coor, *tree_size)))
 }
 
 fn calc_scenic_score_x_y(
     forest: &MyGridArray,
-    coor: Coor,
+    coor: Coor2D,
     tree_size: MyGridArrayItemType,
 ) -> usize {
     let scenic_score_left = amount_of_trees_visible_for_house(
-        to_left_iter(coor, forest.get_width(), forest.get_height()),
+        to_left_iter(coor.clone(), forest.get_width(), forest.get_height()),
         forest,
         tree_size,
     );
     let scenic_score_right = amount_of_trees_visible_for_house(
-        to_right_iter(coor, forest.get_width(), forest.get_height()),
+        to_right_iter(coor.clone(), forest.get_width(), forest.get_height()),
         forest,
         tree_size,
     );
     let scenic_score_top = amount_of_trees_visible_for_house(
-        to_top_iter(coor, forest.get_width(), forest.get_height()),
+        to_top_iter(coor.clone(), forest.get_width(), forest.get_height()),
         forest,
         tree_size,
     );
     let scenic_score_bottom = amount_of_trees_visible_for_house(
-        to_bottom_iter(coor, forest.get_width(), forest.get_height()),
+        to_bottom_iter(coor.clone(), forest.get_width(), forest.get_height()),
         forest,
         tree_size,
     );
@@ -164,13 +164,13 @@ fn calc_scenic_score_x_y(
 }
 
 fn amount_of_trees_visible_for_house(
-    iter: impl Iterator<Item = Coor>,
+    iter: impl Iterator<Item = Coor2D>,
     forest: &MyGridArray,
     tree_size: MyGridArrayItemType,
 ) -> usize {
     let mut amount_of_trees = 0;
-    for (coor2_x, coor2_y) in iter {
-        let tree_size2 = forest.get(coor2_x, coor2_y).unwrap();
+    for coor2 in iter {
+        let tree_size2 = forest.get(coor2.x, coor2.y).unwrap();
         amount_of_trees += 1;
         if tree_size2 >= &tree_size {
             break;
