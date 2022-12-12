@@ -3,7 +3,6 @@
 use std::mem::{replace, swap};
 
 use itertools::Itertools;
-use num_traits::Num;
 
 use crate::grid_iteration::{is_corner, is_edge};
 
@@ -13,7 +12,7 @@ use super::grid_types::{Coor, CoorIndex, Neighborhood, Topology};
 /// GridArray
 #[allow(missing_docs)]
 #[derive(Builder, Clone, PartialEq, Debug)]
-pub struct GridArray<T: Num + Clone + std::fmt::Display> {
+pub struct GridArray<T: Default + Clone + std::fmt::Display> {
     /// width of the grid
     width: CoorIndex,
     height: CoorIndex,
@@ -23,20 +22,80 @@ pub struct GridArray<T: Num + Clone + std::fmt::Display> {
     #[builder(default = "Neighborhood::Square")]
     neighborhood: Neighborhood,
 
-    #[builder(setter(skip), default = "self.create_data_vec()")]
-    _data: Vec<T>,
+    //    #[builder(setter(skip), default = "self.create_data_vec()")]
+    #[builder(default = "self.create_data_vec()")]
+    data: Vec<T>,
 }
 
-impl<T: Num + Clone + std::fmt::Display> GridArrayBuilder<T> {
+impl<T: Default + Clone + std::fmt::Display> GridArrayBuilder<T> {
     fn create_data_vec(&self) -> Vec<T> {
-        vec![T::zero(); self.width.unwrap() * self.height.unwrap()]
+        vec![T::default(); self.width.unwrap() * self.height.unwrap()]
     }
 }
 
-impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
+impl GridArray<char> {
+    /// from newline separated string 
+    pub fn from_newline_separated_string(
+        topology: Topology,
+        neighborhood: Neighborhood,
+        input: String,
+    ) -> Self {
+        let width = input
+            .chars()
+            .enumerate()
+            .filter(|(_, x)| *x == '\n')
+            .take(1)
+            .next()
+            .unwrap()
+            .0
+            - 1;
+        let data = input
+            .chars()
+            .filter(|x| *x != '\n' && *x != '\r')
+            .collect_vec();
+        GridArray::from_1d_vec(topology, neighborhood, width, data)
+    }
+}
+
+impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
     #[allow(dead_code)]
     fn create_data_vec(&self) -> Vec<T> {
-        vec![T::zero(); self.width * self.height]
+        vec![T::default(); self.width * self.height]
+    }
+
+    /// from 1d vector
+    pub fn from_1d_vec(
+        topology: Topology,
+        neighborhood: Neighborhood,
+        width: CoorIndex,
+        data: Vec<T>,
+    ) -> Self {
+        assert_eq!(
+            (data.len()) % width,
+            0,
+            "data.len()={} width={}",
+            data.len(),
+            width
+        );
+        GridArray {
+            width,
+            height: data.len() / width,
+            topology,
+            neighborhood,
+            data,
+        }
+    }
+
+    /// from 2d vector
+    pub fn from_2d_vec(topology: Topology, neighborhood: Neighborhood, data: Vec<Vec<T>>) -> Self {
+        assert!(data.len() > 0);
+        GridArray {
+            width: data[0].len(),
+            height: data.len(),
+            topology,
+            neighborhood,
+            data: data.into_iter().flatten().collect(),
+        }
     }
 
     #[allow(unused_comparisons)]
@@ -94,21 +153,21 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
     /// get reference to element on x, y
     pub fn get(&self, x: CoorIndex, y: CoorIndex) -> Option<&T> {
         if self.check_index(x, y) {
-            Some(&self._data[self.index_to_vec_index(x, y)])
+            Some(&self.data[self.index_to_vec_index(x, y)])
         } else {
             None
         }
     }
 
     fn get_unchecked(&self, x: CoorIndex, y: CoorIndex) -> &T {
-        &self._data[self.index_to_vec_index(x, y)]
+        &self.data[self.index_to_vec_index(x, y)]
     }
 
     /// get mutable reference element on x, y
     pub fn get_mut(&mut self, x: CoorIndex, y: CoorIndex) -> Option<&mut T> {
         if self.check_index(x, y) {
             let vec_index = self.index_to_vec_index(x, y);
-            Some(&mut self._data[vec_index])
+            Some(&mut self.data[vec_index])
         } else {
             None
         }
@@ -122,7 +181,7 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
 
     fn set_unchecked(&mut self, x: usize, y: usize, new_value: T) -> T {
         let vec_index = self.index_to_vec_index(x, y);
-        replace(&mut self._data[vec_index], new_value)
+        replace(&mut self.data[vec_index], new_value)
     }
 
     /// set new element on x, y based on vector
@@ -164,6 +223,11 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
     }
 
     // map_indexes_to_cells_mut not possible to implement (multiple borrows of self_data)
+
+    /// all data
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.data.iter()
+    }
 
     /// return all elements
     pub fn all_cells(&self) -> impl Iterator<Item = (Coor, &T)> {
@@ -214,7 +278,7 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         if (x1, y1) != (x2, y2) {
             let vec_index1 = self.index_to_vec_index(x1, y1);
             let vec_index2 = self.index_to_vec_index(x2, y2);
-            self._data.swap(vec_index1, vec_index2);
+            self.data.swap(vec_index1, vec_index2);
         }
     }
 
@@ -244,7 +308,7 @@ impl<T: Num + Clone + std::fmt::Display> GridArray<T> {
         if swap_width_height {
             swap(&mut self.width, &mut self.height);
         }
-        self._data = new_data;
+        self.data = new_data;
     }
 
     /// transpose

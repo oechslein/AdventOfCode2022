@@ -15,13 +15,13 @@ pub(crate) fn adjacent_cell(
     let (x, y) = index;
     match d {
         NorthEast => adjacent_cell(t, width, height, index, North)
-            .and_then(|(new_x, new_y)| adjacent_cell(t, width, height, (new_x, new_y), East)),
+            .and_then(|new_coor| adjacent_cell(t, width, height, new_coor, East)),
         NorthWest => adjacent_cell(t, width, height, index, North)
-            .and_then(|(new_x, new_y)| adjacent_cell(t, width, height, (new_x, new_y), West)),
+            .and_then(|new_coor| adjacent_cell(t, width, height, new_coor, West)),
         SouthEast => adjacent_cell(t, width, height, index, South)
-            .and_then(|(new_x, new_y)| adjacent_cell(t, width, height, (new_x, new_y), East)),
+            .and_then(|new_coor| adjacent_cell(t, width, height, new_coor, East)),
         SouthWest => adjacent_cell(t, width, height, index, South)
-            .and_then(|(new_x, new_y)| adjacent_cell(t, width, height, (new_x, new_y), West)),
+            .and_then(|new_coor| adjacent_cell(t, width, height, new_coor, West)),
 
         _ => match t {
             Bounded => match d {

@@ -7,7 +7,8 @@ edition = "2021"
 
 [dependencies]
 derive_builder = "0.12.0"
+derive_more = "0.99"
 
 itertools = "0.10.1"       # Extra iterator adaptors, iterator methods, free functions, and macros.
-num-traits = "0.2"
-num-derive = "0.3.3"
+#num-traits = "0.2"
+#num-derive = "0.3.3"
