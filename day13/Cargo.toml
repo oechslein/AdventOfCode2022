@@ -10,6 +10,7 @@ grid = { path = "../grid/" }
 utils = { path = "../utils" }
 itertools = "0.10.1"       # Extra iterator adaptors, iterator methods, free functions, and macros.
 
+derive_more = "0.99.17"    # Additional derive traits like Display, From, Into, FromStr, Add, Mul, ..
 #derive_builder = "0.12.0"
 #cached = "0.40.0"          # Caching structures and simplified function memoization
 #array2d = "0.2.1"
