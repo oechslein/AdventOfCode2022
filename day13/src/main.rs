@@ -9,7 +9,7 @@
     clippy::must_use_candidate
 )]
 
-use std::{cmp::Ordering, fmt::Display};
+use std::{cmp::Ordering, fmt::Display, iter::Peekable, str::Chars};
 
 use derive_more::Display;
 use itertools::Itertools;
@@ -36,8 +36,8 @@ pub fn solve_part1(file_name: &str) -> usize {
 pub fn solve_part2(file_name: &str) -> usize {
     let mut packet_vec = parse(file_name);
 
-    let div_packet1 = parse_line("[[2]]".to_string());
-    let div_packet2 = parse_line("[[6]]".to_string());
+    let div_packet1 = parse_packet("[[2]]".to_string());
+    let div_packet2 = parse_packet("[[6]]".to_string());
     packet_vec.push(div_packet1.clone());
     packet_vec.push(div_packet2.clone());
 
@@ -136,104 +136,68 @@ fn parse_pairs(file_name: &str) -> Vec<(Packet, Packet)> {
         .filter(|line| !line.is_empty())
         .chunks(2)
         .into_iter()
-        .map(|x| x.map(parse_line).collect_tuple().unwrap())
+        .map(|x| x.map(parse_packet).collect_tuple().unwrap())
         .collect_vec()
 }
 
 fn parse(file_name: &str) -> Vec<Packet> {
     utils::file_to_lines(file_name)
         .filter(|line| !line.is_empty())
-        .map(parse_line)
+        .map(parse_packet)
         .collect_vec()
 }
 
-fn parse_line(line: String) -> Packet {
-    let mut index = 0;
+fn parse_packet(line: String) -> Packet {
     Packet {
-        _data: parse_line_rec(&line.chars().collect_vec()[..], &mut index),
+        _data: parse_packet_content(&mut line.chars().into_iter().peekable()),
     }
 }
 
-fn parse_line_rec(line: &[char], index: &mut usize) -> PacketContent {
-    // println!(
-    //     "parse_line_rec: {}, {}",
-    //     line.iter().skip(*index).join(""),
-    //     index
-    // );
-    if line[*index] == '[' {
-        parse_packet_list(line, index)
+fn parse_packet_content(line: &mut Peekable<Chars>) -> PacketContent {
+    if line.peek().unwrap() == &'[' {
+        parse_packet_list(line)
     } else {
-        parse_packet_number(line, index)
+        parse_packet_number(line)
     }
 }
 
-fn parse_packet_number(line: &[char], index: &mut usize) -> PacketContent {
-    // print!(
-    //     "parse_packet_number: {}, {}",
-    //     line.iter().skip(*index).join(""),
-    //     index
-    // );
-    let end_pos = line
-        .iter()
-        .enumerate()
-        .skip(*index)
-        .find_or_last(|(_, c)| !c.is_digit(10))
-        .unwrap()
-        .0;
-    // print!(" end_pos: {}", end_pos);
-    let num = line[*index..end_pos].iter().join("").parse().unwrap();
-    // println!(" => {}", num);
-    let result = PacketContent::Number(num);
-    *index = end_pos;
-    result
+fn parse_packet_number(line: &mut Peekable<Chars>) -> PacketContent {
+    let mut num: usize = 0;
+    while let Some(c) = line.peek() {
+        if let Some(d) = c.to_digit(10) {
+            num = num * 10 + d as usize;
+            line.next();
+        } else {
+            break;
+        }
+    }
+    PacketContent::Number(num)
 }
 
-fn parse_packet_list(line: &[char], index: &mut usize) -> PacketContent {
-    // println!(
-    //     "parse_packet_list: {}, {}",
-    //     line.iter().skip(*index).join(""),
-    //     index
-    // );
-    let end_pos = find_closing_bracket(&line, index);
-    *index += 1; // skip the opening bracket
+fn parse_packet_list(line: &mut Peekable<Chars>) -> PacketContent {
+    let c = line.next(); // skip opening bracket
+    assert_eq!(c, Some('['));
+
     let mut content = Vec::new();
-    while *index < end_pos {
-        content.push(parse_line_rec(line, index));
-        if *index < end_pos {
-            assert_eq!(line[*index], ',');
-            *index += 1; // skip the comma
-        }
-    }
-    *index += 1; // skip the closing bracket
-                 // println!("parse_packet_list => {:?}", content);
-    PacketContent::List(content)
-}
-
-fn find_closing_bracket(line: &[char], index: &usize) -> usize {
-    // print!(
-    //     "find_closing_bracket: {}, {}",
-    //     line.iter().skip(*index).join(""),
-    //     index
-    // );
-    let mut open_bracket_count: usize = 0;
-    for new_index in *index..line.len() {
-        match line[new_index] {
-            '[' => open_bracket_count += 1,
-            ']' => {
-                open_bracket_count -= 1;
-                if open_bracket_count == 0 {
-                    // println!(" => {}", new_index);
-                    return new_index;
-                }
+    loop {
+        match line.peek() {
+            None => panic!("Unexpected end of line"),
+            Some(&']') => {
+                line.next(); // closing bracket
+                return PacketContent::List(content);
             }
-            _ => (),
+            Some(&',') => {
+                assert!(!content.is_empty());
+                line.next(); // skip comma
+            }
+            Some(_) => {
+                content.push(parse_packet_content(line));
+            }
         }
     }
-    panic!("No matching closing bracket found");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-
 extern crate test;
 
 #[cfg(test)]
