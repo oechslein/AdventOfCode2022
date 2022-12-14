@@ -13,7 +13,6 @@ pub type Coor2D = Coor2DMut<Coor2DIndex>;
     Eq,
     PartialEq,
     Hash,
-    Ord,
     PartialOrd,
     Clone,
     Debug,
@@ -29,20 +28,20 @@ pub type Coor2D = Coor2DMut<Coor2DIndex>;
 )]
 //#[into(owned, ref, ref_mut)]
 #[display(fmt = "({},{})", x, y)]
-pub struct Coor2DMut<T: Clone> {
+pub struct Coor2DMut<T: Clone + Ord + Eq> {
     /// x
     pub x: T,
     /// y
     pub y: T,
 }
 
-impl<T: Clone> From<(T, T)> for Coor2DMut<T> {
+impl<T: Clone + Ord + Eq> From<(T, T)> for Coor2DMut<T> {
     fn from(t: (T, T)) -> Self {
         Coor2DMut { x: t.0, y: t.1 }
     }
 }
 
-impl<T: Clone> Coor2DMut<T> {
+impl<T: Clone + Ord + Eq> Coor2DMut<T> {
     /// to tuples
     pub fn to_tuple(&self) -> (T, T) {
         (self.x.clone(), self.y.clone())
@@ -50,6 +49,22 @@ impl<T: Clone> Coor2DMut<T> {
     /// from tuples
     pub fn from_tuple(t: (T, T)) -> Self {
         Self::new(t.0, t.1)
+    }
+
+    /// min
+    pub fn min(&self, other: Self) -> Self {
+        Self::new(
+            self.x.clone().min(other.x),
+            self.y.clone().min(other.y),
+        )
+    }
+
+    /// max
+    pub fn max(&self, other: Self) -> Self {
+        Self::new(
+            self.x.clone().max(other.x),
+            self.y.clone().max(other.y),
+        )
     }
 }
 

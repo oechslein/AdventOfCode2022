@@ -13,6 +13,7 @@ use std::fmt::Debug;
 use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::ops::RangeInclusive;
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -118,18 +119,11 @@ pub fn with_measure<T: Debug>(title: &str, f: fn() -> T) -> T {
     res
 }
 
-/*
-pub fn k_largest_old<T>(input: impl Iterator<Item = T>, k: usize) -> impl Iterator<Item = T>
-where T: Ord {
-    use std::collections::BinaryHeap;
-    let mut h = BinaryHeap::with_capacity(k);
-    for item in input {
-        h.push(std::cmp::Reverse(item));
-        if h.len() > k {
-             h.pop();
-        }
+/// Returns a range from "from" to "to" (if to is smaller than from a range from "to" to "from" is returned)
+pub fn inclusive_range_always(from: usize, to: usize) -> RangeInclusive<usize> {
+    if from < to {
+        from..=to
+    } else {
+        to..=from
     }
-
-    h.into_iter().map(|rev| rev.0).rev()
 }
-*/
