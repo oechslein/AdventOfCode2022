@@ -32,10 +32,10 @@ fn main() {
 
 pub fn solve_part1(file_name: &str) -> usize {
     let (mut grid, rocks, sand_entry, max_rock_y) = parse(file_name, None);
-    print_grid(&grid);
+    //print_grid(&grid);
 
     let sand_count = simulate_sands(&mut grid, rocks, sand_entry, Some(max_rock_y), None);
-    print_grid(&grid);
+    //print_grid(&grid);
 
     sand_count
 }
@@ -43,7 +43,7 @@ pub fn solve_part1(file_name: &str) -> usize {
 pub fn solve_part2(file_name: &str) -> usize {
     let floor_y_diff = 2;
     let (mut grid, rocks, sand_entry, max_rock_y) = parse(file_name, Some(floor_y_diff));
-    print_grid(&grid);
+    //print_grid(&grid);
 
     let sand_count = simulate_sands(
         &mut grid,
@@ -52,63 +52,12 @@ pub fn solve_part2(file_name: &str) -> usize {
         None,
         Some(floor_y_diff + max_rock_y),
     );
-    print_grid(&grid);
+    //print_grid(&grid);
 
     sand_count + 1 // +1 for the sand entry position
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-
-fn parse(
-    file_name: &str,
-    floor_y_diff: Option<usize>,
-) -> (GridArray<char>, HashSet<Coor2D>, Coor2D, usize) {
-    let rocks: HashSet<Coor2D> = utils::file_to_lines(file_name)
-        .flat_map(|line| {
-            line.split(" -> ")
-                .map(|t| {
-                    Coor2D::from_tuple(t.split(',').map(utils::str_to).collect_tuple().unwrap())
-                })
-                .tuple_windows()
-                .flat_map(|(pos1, pos2)| {
-                    assert!(pos1.x == pos2.x || pos1.y == pos2.y);
-                    utils::inclusive_range_always(pos1.x, pos2.x)
-                        .cartesian_product(utils::inclusive_range_always(pos1.y, pos2.y))
-                        .map(Coor2D::from_tuple)
-                        .collect_vec()
-                })
-                .collect_vec()
-        })
-        .collect();
-    let sand_entry = Coor2D::new(500, 0);
-    let (min_x, max_x) = rocks
-        .iter()
-        .chain(vec![&sand_entry].into_iter())
-        .map(|coor| coor.x)
-        .minmax()
-        .into_option()
-        .unwrap();
-    let (min_y, max_y) = rocks
-        .iter()
-        .chain(vec![&sand_entry].into_iter())
-        .map(|coor| coor.y)
-        .minmax()
-        .into_option()
-        .unwrap();
-    let mut grid: GridArray<char> = GridArrayBuilder::default()
-        .topology(Topology::Bounded)
-        .neighborhood(Neighborhood::Square)
-        .width(max_x + max_y + 1)
-        .height(max_y + floor_y_diff.unwrap_or(0) + 1)
-        .build()
-        .unwrap();
-
-    rocks.iter().for_each(|coor| {
-        grid.set(coor.x, coor.y, '#');
-    });
-    grid.set(sand_entry.x, sand_entry.y, '+');
-    (grid, rocks, sand_entry, max_y)
-}
 
 fn simulate_sands(
     grid: &mut GridArray<char>,
@@ -122,13 +71,14 @@ fn simulate_sands(
         let sandpos = let_sand_fall(&sand_entry, &solid_coors_set, max_rock_y, floor_y);
         match sandpos {
             None => break,
-            Some(sand_pos) if sand_pos == sand_entry => break,
+            Some(sand_pos) if sand_pos == sand_entry => {
+                sand_count += 1;
+                break;
+            }
             Some(sand_pos) => {
                 grid.set(sand_pos.x, sand_pos.y, 'o');
                 solid_coors_set.insert(sand_pos);
                 sand_count += 1;
-                //print_grid(&grid);
-                //println!("");
             }
         }
     }
@@ -176,18 +126,9 @@ fn let_sand_fall(
 }
 
 fn print_grid(grid: &GridArray<char>) {
-    let (min_corr, max_coor) = grid.all_cells().filter(|(_, ch)| ch != &&'\0').fold(
-        (
-            Coor2D::new(usize::MAX, usize::MAX),
-            Coor2D::new(usize::MIN, usize::MIN),
-        ),
-        |(coor_min, coor_max), (coor, _)| (coor_min.min(coor.clone()), coor_max.max(coor)),
-    );
-
-    let (min_x, max_x) = min_corr.to_tuple();
-    let (min_y, max_y) = max_coor.to_tuple();
-    for y in min_y..=max_y {
-        for x in min_x..=max_x {
+    let (min_corr, max_coor) = get_minmax_nonempty(grid);
+    for y in min_corr.y..=max_coor.y {
+        for x in min_corr.x..=max_coor.x {
             let ch = grid.get_unchecked(x, y);
             if ch != &'\0' {
                 print!("{}", ch);
@@ -197,6 +138,67 @@ fn print_grid(grid: &GridArray<char>) {
         }
         println!();
     }
+}
+
+fn get_minmax_nonempty(grid: &GridArray<char>) -> (Coor2D, Coor2D) {
+    grid.all_cells().filter(|(_, ch)| ch != &&'\0').fold(
+        (
+            Coor2D::new(usize::MAX, usize::MAX),
+            Coor2D::new(usize::MIN, usize::MIN),
+        ),
+        |(coor_min, coor_max), (coor, _)| (coor_min.min(coor.clone()), coor_max.max(coor)),
+    )
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+
+fn parse(
+    file_name: &str,
+    floor_y_diff: Option<usize>,
+) -> (GridArray<char>, HashSet<Coor2D>, Coor2D, usize) {
+    let rocks = parse_rock_data(file_name);
+    let sand_entry = Coor2D::new(500, 0);
+    let max_coor: Coor2D = rocks
+        .iter()
+        .fold(
+            Coor2D::new(usize::MIN, usize::MIN),
+            |acc: Coor2D, e: &Coor2D| acc.max(e.clone()),
+        )
+        .max(sand_entry.clone());
+
+    let mut grid: GridArray<char> = GridArrayBuilder::default()
+        .topology(Topology::Bounded)
+        .neighborhood(Neighborhood::Square)
+        .width(max_coor.x + max_coor.y + 1)
+        .height(max_coor.y + floor_y_diff.unwrap_or(0) + 1)
+        .build()
+        .unwrap();
+
+    rocks.iter().for_each(|coor| {
+        grid.set(coor.x, coor.y, '#');
+    });
+    grid.set(sand_entry.x, sand_entry.y, '+');
+
+    (grid, rocks, sand_entry, max_coor.y)
+}
+
+fn parse_rock_data(file_name: &str) -> HashSet<Coor2D> {
+    utils::file_to_lines(file_name)
+        .flat_map(|line| {
+            line.split(" -> ")
+                .map(|t| {
+                    Coor2D::from_tuple(t.split(',').map(utils::str_to).collect_tuple().unwrap())
+                })
+                .tuple_windows()
+                .flat_map(|(pos1, pos2)| {
+                    assert!(pos1.x == pos2.x || pos1.y == pos2.y);
+                    utils::inclusive_range_always(pos1.x, pos2.x)
+                        .cartesian_product(utils::inclusive_range_always(pos1.y, pos2.y))
+                        .map(Coor2D::from_tuple)
+                })
+                .collect_vec()
+        })
+        .collect()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

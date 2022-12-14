@@ -13,6 +13,7 @@ pub type Coor2D = Coor2DMut<Coor2DIndex>;
     Eq,
     PartialEq,
     Hash,
+    // Ord,
     PartialOrd,
     Clone,
     Debug,
