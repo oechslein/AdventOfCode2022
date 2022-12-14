@@ -1,6 +1,6 @@
 #![allow(unused_imports)]
-#![allow(dead_code)]
-#![allow(unused_must_use)]
+//#![allow(dead_code)]
+//#![allow(unused_must_use)]
 #![feature(test)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
@@ -9,11 +9,9 @@
     clippy::must_use_candidate
 )]
 
-use std::{
-    collections::{hash_set, HashSet},
-    ops::{Range, RangeInclusive},
-};
+use std::{collections::HashSet, fs::File};
 
+use gif::{Encoder, Frame, Repeat};
 use grid::{
     grid_array::{GridArray, GridArrayBuilder},
     grid_types::{Coor2D, Neighborhood, Topology},
@@ -31,10 +29,19 @@ fn main() {
 ////////////////////////////////////////////////////////////////////////////////////
 
 pub fn solve_part1(file_name: &str) -> usize {
-    let (mut grid, rocks, sand_entry, max_rock_y) = parse(file_name, None);
+    let sand_entry = Coor2D::new(500, 0);
+    let (mut grid, rocks, max_rock_y) = parse(file_name, &sand_entry, None);
     //print_grid(&grid);
 
-    let sand_count = simulate_sands(&mut grid, rocks, sand_entry, Some(max_rock_y), None);
+    let filename = create_image_filename(file_name, &sand_entry, 1);
+    let sand_count = simulate_sands(
+        &mut grid,
+        rocks,
+        &sand_entry,
+        Some(max_rock_y),
+        None,
+        filename.as_str(),
+    );
     //print_grid(&grid);
 
     sand_count
@@ -42,19 +49,26 @@ pub fn solve_part1(file_name: &str) -> usize {
 
 pub fn solve_part2(file_name: &str) -> usize {
     let floor_y_diff = 2;
-    let (mut grid, rocks, sand_entry, max_rock_y) = parse(file_name, Some(floor_y_diff));
+    let sand_entry = if !cfg!(test) {
+        Coor2D::new(500, 0)
+    } else {
+        Coor2D::new(500, 0)
+    };
+    let (mut grid, rocks, max_rock_y) = parse(file_name, &sand_entry, Some(floor_y_diff));
     //print_grid(&grid);
 
+    let filename = create_image_filename(file_name, &sand_entry, 2);
     let sand_count = simulate_sands(
         &mut grid,
         rocks,
-        sand_entry,
+        &sand_entry,
         None,
         Some(floor_y_diff + max_rock_y),
+        filename.as_str(),
     );
     //print_grid(&grid);
 
-    sand_count + 1 // +1 for the sand entry position
+    sand_count
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -62,16 +76,26 @@ pub fn solve_part2(file_name: &str) -> usize {
 fn simulate_sands(
     grid: &mut GridArray<char>,
     mut solid_coors_set: HashSet<Coor2D>,
-    sand_entry: Coor2D,
+    sand_entry: &Coor2D,
     max_rock_y: Option<usize>,
     floor_y: Option<usize>,
+    file_path: &str,
 ) -> usize {
+    let mut frame_vec = Vec::new();
+    save_frame(grid, &mut frame_vec);
     let mut sand_count = 0;
     loop {
-        let sandpos = let_sand_fall(&sand_entry, &solid_coors_set, max_rock_y, floor_y);
+        let sandpos = let_sand_fall(
+            grid,
+            &sand_entry,
+            &solid_coors_set,
+            max_rock_y,
+            floor_y,
+            &mut frame_vec,
+        );
         match sandpos {
             None => break,
-            Some(sand_pos) if sand_pos == sand_entry => {
+            Some(sand_pos) if sand_pos == *sand_entry => {
                 sand_count += 1;
                 break;
             }
@@ -81,15 +105,20 @@ fn simulate_sands(
                 sand_count += 1;
             }
         }
+        save_frame(grid, &mut frame_vec);
     }
+
+    save_gif(&mut frame_vec, file_path);
     sand_count
 }
 
-fn let_sand_fall(
+fn let_sand_fall<'a>(
+    grid: &mut GridArray<char>,
     start_coor: &Coor2D,
     solid_coors_set: &HashSet<Coor2D>,
     max_rock_y: Option<usize>,
     floor_y: Option<usize>,
+    frame_vec: &mut Vec<Frame<'a>>,
 ) -> Option<Coor2D> {
     let no_solid = |coor: Coor2D| {
         if solid_coors_set.contains(&coor) {
@@ -101,6 +130,13 @@ fn let_sand_fall(
         }
     };
 
+    let mut _add_frame = |curr_coor: &Coor2D, next_coor: &Coor2D| {
+        grid.set(curr_coor.x, curr_coor.y, '\0');
+        grid.set(next_coor.x, next_coor.y, '+');
+        grid.set(start_coor.x, start_coor.y, '+');
+        save_frame(grid, frame_vec);
+    };
+
     let mut curr_coor = start_coor.clone();
     loop {
         let next_coor = curr_coor.clone() + Coor2D::new(0, 1);
@@ -108,35 +144,29 @@ fn let_sand_fall(
             return None;
         }
         if let Some(next_coor) = no_solid(next_coor.clone()) {
+            #[cfg(not(test))]
+            _add_frame(&curr_coor, &next_coor);
+
             curr_coor = next_coor;
             continue;
         }
         if let Some(next_coor) = no_solid(next_coor.clone() - Coor2D::new(1, 0)) {
+            #[cfg(not(test))]
+            _add_frame(&curr_coor, &next_coor);
+
             curr_coor = next_coor;
             continue;
         }
         if let Some(next_coor) = no_solid(next_coor.clone() + Coor2D::new(1, 0)) {
+            #[cfg(not(test))]
+            _add_frame(&curr_coor, &next_coor);
+
             curr_coor = next_coor;
             continue;
         }
 
         // all blocked
         return Some(curr_coor);
-    }
-}
-
-fn print_grid(grid: &GridArray<char>) {
-    let (min_corr, max_coor) = get_minmax_nonempty(grid);
-    for y in min_corr.y..=max_coor.y {
-        for x in min_corr.x..=max_coor.x {
-            let ch = grid.get_unchecked(x, y);
-            if ch != &'\0' {
-                print!("{}", ch);
-            } else {
-                print!(".");
-            }
-        }
-        println!();
     }
 }
 
@@ -152,12 +182,22 @@ fn get_minmax_nonempty(grid: &GridArray<char>) -> (Coor2D, Coor2D) {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 
+fn create_image_filename(file_name: &str, sand_entry: &Coor2D, part_number: usize) -> String {
+    format!(
+        r"C:\temp\{}_{}x{}_part{}.gif",
+        file_name.to_string().replace("/", "_"),
+        sand_entry.x,
+        sand_entry.y,
+        part_number
+    )
+}
+
 fn parse(
     file_name: &str,
+    sand_entry: &Coor2D,
     floor_y_diff: Option<usize>,
-) -> (GridArray<char>, HashSet<Coor2D>, Coor2D, usize) {
+) -> (GridArray<char>, HashSet<Coor2D>, usize) {
     let rocks = parse_rock_data(file_name);
-    let sand_entry = Coor2D::new(500, 0);
     let max_coor: Coor2D = rocks
         .iter()
         .fold(
@@ -165,7 +205,6 @@ fn parse(
             |acc: Coor2D, e: &Coor2D| acc.max(e.clone()),
         )
         .max(sand_entry.clone());
-
     let mut grid: GridArray<char> = GridArrayBuilder::default()
         .topology(Topology::Bounded)
         .neighborhood(Neighborhood::Square)
@@ -173,13 +212,11 @@ fn parse(
         .height(max_coor.y + floor_y_diff.unwrap_or(0) + 1)
         .build()
         .unwrap();
-
     rocks.iter().for_each(|coor| {
         grid.set(coor.x, coor.y, '#');
     });
     grid.set(sand_entry.x, sand_entry.y, '+');
-
-    (grid, rocks, sand_entry, max_coor.y)
+    (grid, rocks, max_coor.y)
 }
 
 fn parse_rock_data(file_name: &str) -> HashSet<Coor2D> {
@@ -199,6 +236,92 @@ fn parse_rock_data(file_name: &str) -> HashSet<Coor2D> {
                 .collect_vec()
         })
         .collect()
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+
+#[allow(dead_code)]
+fn print_grid(grid: &GridArray<char>) {
+    if cfg!(test) {
+        return;
+    }
+    let (min_coor, max_coor) = get_minmax_nonempty(grid);
+    for y in min_coor.y..=max_coor.y {
+        for x in min_coor.x..=max_coor.x {
+            let ch = grid.get_unchecked(x, y);
+            if ch != &'\0' {
+                print!("{}", ch);
+            } else {
+                print!(".");
+            }
+        }
+        println!();
+    }
+}
+
+#[cfg(test)]
+#[inline]
+fn save_frame<'a>(
+    _grid: &GridArray<char>,
+    _frame_vec: &mut Vec<Frame<'a>>,
+) {
+}
+
+#[cfg(not(test))]
+fn save_frame<'a>(
+    grid: &GridArray<char>,
+    frame_vec: &mut Vec<Frame<'a>>,
+) {
+    let (min_coor, max_coor) = get_minmax_nonempty(grid);
+
+    let image_width = (max_coor.x - min_coor.x + 1) as u16;
+    let image_height = (max_coor.y - min_coor.y + 1) as u16;
+
+    let mut pixels: Vec<u8> = vec![0; (image_width * image_height) as usize];
+
+    for y in min_coor.y..=max_coor.y {
+        for x in min_coor.x..=max_coor.x {
+            let image_x = x - min_coor.x;
+            let image_y = y - min_coor.y;
+            let index = image_x + image_y * image_height as usize;
+            let ch = grid.get_unchecked(x, y);
+            if ch == &'#' || ch == &'o' || ch == &'+' {
+                    (&mut pixels)[index] = match ch {
+                    '#' => 0,
+                    'o' => 1,
+                    '+' => 2,
+                    _ => unreachable!("ch: '{}'", ch),
+                };
+            }
+        }
+    }
+
+    frame_vec.push(Frame::from_indexed_pixels(image_width, image_height, &mut *pixels, None));
+}
+
+#[cfg(test)]
+#[inline]
+fn save_gif<'a>(_frame_vec: &mut Vec<Frame<'a>>, _file_path: &str) {}
+
+#[cfg(not(test))]
+fn save_gif<'a>(frame_vec: &mut Vec<Frame<'a>>, file_path: &str) {
+    if cfg!(test) {
+        return;
+    }
+    println!("Saving image to {} ....", file_path);
+
+    let mut image = File::create(file_path).unwrap();
+    let mut encoder = Encoder::new(
+        &mut image,
+        frame_vec.last().unwrap().width,
+        frame_vec.last().unwrap().height,
+        &[160, 160, 160, 255, 217, 50,255 / 2, 217 / 2, 50 / 2],
+    )
+    .unwrap();
+    encoder.set_repeat(Repeat::Finite(1)).unwrap();
+    for frame in frame_vec.iter() {
+        encoder.write_frame(&frame).unwrap();
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
