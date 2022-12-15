@@ -23,7 +23,7 @@ use itertools::Itertools;
 /// AOC
 fn main() {
     utils::with_measure("Part 1", || solve_part1("day14/test.txt"));
-    utils::with_measure("Part 2", || solve_part2("day14/test.txt"));
+    utils::with_measure("Part 2", || solve_part2("day14/input.txt"));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -49,11 +49,7 @@ pub fn solve_part1(file_name: &str) -> usize {
 
 pub fn solve_part2(file_name: &str) -> usize {
     let floor_y_diff = 2;
-    let sand_entry = if !cfg!(test) {
-        Coor2D::new(500, 0)
-    } else {
-        Coor2D::new(500, 0)
-    };
+    let sand_entry = Coor2D::new(500, 0);
     let (mut grid, rocks, max_rock_y) = parse(file_name, &sand_entry, Some(floor_y_diff));
     //print_grid(&grid);
 
@@ -81,8 +77,8 @@ fn simulate_sands(
     floor_y: Option<usize>,
     file_path: &str,
 ) -> usize {
-    let mut frame_vec = Vec::new();
-    save_frame(grid, &mut frame_vec);
+    let mut grid_vec = Vec::new();
+    save_grid(grid, &mut grid_vec);
     let mut sand_count = 0;
     loop {
         let sandpos = let_sand_fall(
@@ -91,7 +87,7 @@ fn simulate_sands(
             &solid_coors_set,
             max_rock_y,
             floor_y,
-            &mut frame_vec,
+            &mut grid_vec,
         );
         match sandpos {
             None => break,
@@ -105,10 +101,10 @@ fn simulate_sands(
                 sand_count += 1;
             }
         }
-        save_frame(grid, &mut frame_vec);
+        save_grid(grid, &mut grid_vec);
     }
 
-    save_gif(&mut frame_vec, file_path);
+    save_gif(&grid_vec, file_path);
     sand_count
 }
 
@@ -118,7 +114,7 @@ fn let_sand_fall<'a>(
     solid_coors_set: &HashSet<Coor2D>,
     max_rock_y: Option<usize>,
     floor_y: Option<usize>,
-    frame_vec: &mut Vec<Frame<'a>>,
+    grid_vec: &mut Vec<GridArray<char>>,
 ) -> Option<Coor2D> {
     let no_solid = |coor: Coor2D| {
         if solid_coors_set.contains(&coor) {
@@ -134,7 +130,7 @@ fn let_sand_fall<'a>(
         grid.set(curr_coor.x, curr_coor.y, '\0');
         grid.set(next_coor.x, next_coor.y, '+');
         grid.set(start_coor.x, start_coor.y, '+');
-        save_frame(grid, frame_vec);
+        save_grid(grid, grid_vec);
     };
 
     let mut curr_coor = start_coor.clone();
@@ -176,7 +172,7 @@ fn get_minmax_nonempty(grid: &GridArray<char>) -> (Coor2D, Coor2D) {
             Coor2D::new(usize::MAX, usize::MAX),
             Coor2D::new(usize::MIN, usize::MIN),
         ),
-        |(coor_min, coor_max), (coor, _)| (coor_min.min(coor.clone()), coor_max.max(coor)),
+        |(coor_min, coor_max), (coor, _)| (coor_min.min(&coor), coor_max.max(&coor)),
     )
 }
 
@@ -202,9 +198,9 @@ fn parse(
         .iter()
         .fold(
             Coor2D::new(usize::MIN, usize::MIN),
-            |acc: Coor2D, e: &Coor2D| acc.max(e.clone()),
+            |acc: Coor2D, e: &Coor2D| acc.max(&e),
         )
-        .max(sand_entry.clone());
+        .max(&sand_entry);
     let mut grid: GridArray<char> = GridArrayBuilder::default()
         .topology(Topology::Bounded)
         .neighborhood(Neighborhood::Square)
@@ -259,67 +255,79 @@ fn print_grid(grid: &GridArray<char>) {
     }
 }
 
-#[cfg(test)]
-#[inline]
-fn save_frame<'a>(
-    _grid: &GridArray<char>,
-    _frame_vec: &mut Vec<Frame<'a>>,
-) {
-}
 
-#[cfg(not(test))]
-fn save_frame<'a>(
-    grid: &GridArray<char>,
-    frame_vec: &mut Vec<Frame<'a>>,
-) {
-    let (min_coor, max_coor) = get_minmax_nonempty(grid);
-
-    let image_width = (max_coor.x - min_coor.x + 1) as u16;
-    let image_height = (max_coor.y - min_coor.y + 1) as u16;
-
-    let mut pixels: Vec<u8> = vec![0; (image_width * image_height) as usize];
-
-    for y in min_coor.y..=max_coor.y {
-        for x in min_coor.x..=max_coor.x {
-            let image_x = x - min_coor.x;
-            let image_y = y - min_coor.y;
-            let index = image_x + image_y * image_height as usize;
-            let ch = grid.get_unchecked(x, y);
-            if ch == &'#' || ch == &'o' || ch == &'+' {
-                    (&mut pixels)[index] = match ch {
-                    '#' => 0,
-                    'o' => 1,
-                    '+' => 2,
-                    _ => unreachable!("ch: '{}'", ch),
-                };
-            }
-        }
+fn save_grid(_grid: &GridArray<char>, _grid_vec: &mut Vec<GridArray<char>>) {
+    #[cfg(not(test))]
+    {
+        _grid_vec.push(_grid.clone());
     }
-
-    frame_vec.push(Frame::from_indexed_pixels(image_width, image_height, &mut *pixels, None));
 }
 
-#[cfg(test)]
-#[inline]
-fn save_gif<'a>(_frame_vec: &mut Vec<Frame<'a>>, _file_path: &str) {}
-
-#[cfg(not(test))]
-fn save_gif<'a>(frame_vec: &mut Vec<Frame<'a>>, file_path: &str) {
+fn save_gif<'a>(grid_vec: &Vec<GridArray<char>>, file_path: &str) {
     if cfg!(test) {
         return;
     }
+
     println!("Saving image to {} ....", file_path);
+
+    let (total_min_coor, total_max_coor) = grid_vec.iter().map(get_minmax_nonempty).fold(
+        (
+            Coor2D::new(usize::MAX, usize::MAX),
+            Coor2D::new(usize::MIN, usize::MIN),
+        ),
+        |(coor_min, coor_max), (min_coor, max_coor)| {
+            (coor_min.min(&min_coor), coor_max.max(&max_coor))
+        },
+    );
+
+    let image_width = (total_max_coor.x - total_min_coor.x + 1) as u16;
+    let image_height = (total_max_coor.y - total_min_coor.y + 1) as u16;
 
     let mut image = File::create(file_path).unwrap();
     let mut encoder = Encoder::new(
         &mut image,
-        frame_vec.last().unwrap().width,
-        frame_vec.last().unwrap().height,
-        &[160, 160, 160, 255, 217, 50,255 / 2, 217 / 2, 50 / 2],
+        image_width,
+        image_height,
+        vec![
+            vec![0, 0, 0],
+            vec![160, 160, 160],
+            vec![255, 217, 50],
+            vec![255 / 2, 217 / 2, 50 / 2],
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<u8>>()
+        .as_slice(),
     )
     .unwrap();
     encoder.set_repeat(Repeat::Finite(1)).unwrap();
-    for frame in frame_vec.iter() {
+    for grid in grid_vec {
+        let (min_coor, max_coor) = get_minmax_nonempty(grid);
+        let frame_width = (max_coor.x - min_coor.x + 1) as u16;
+        let frame_height = (max_coor.y - min_coor.y + 1) as u16;
+
+        let mut pixels: Vec<u8> = vec![0; (frame_width * frame_height) as usize];
+
+        for y in min_coor.y..=max_coor.y {
+            for x in min_coor.x..=max_coor.x {
+                let image_x = x - min_coor.x;
+                let image_y = y - min_coor.y;
+                let index = image_x + image_y * frame_width as usize;
+                let ch = grid.get_unchecked(x, y);
+                if ch == &'#' || ch == &'o' || ch == &'+' {
+                    (&mut pixels)[index] = match ch {
+                        '#' => 1,
+                        'o' => 2,
+                        '+' => 3,
+                        _ => unreachable!("ch: '{}'", ch),
+                    };
+                }
+            }
+        }
+
+        let mut frame = Frame::from_indexed_pixels(frame_width, frame_height, &mut *pixels, None);
+        frame.left = (min_coor.x - total_min_coor.x) as u16;
+        frame.top = (min_coor.y - total_min_coor.y) as u16;
         encoder.write_frame(&frame).unwrap();
     }
 }

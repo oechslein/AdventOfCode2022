@@ -110,6 +110,7 @@ where
     /// Print grid
     pub fn print(&self, default: T) {
         let min_max = self.get_min_max();
+        //println!("min: {:?}, max: {:?}", min_max.0, min_max.1);
         for y in min_max.0.y..min_max.1.y as isize {
             for x in min_max.0.x..min_max.1.x as isize {
                 if let Some(ch) = self.get(&Coor2DMut::new(x, y)) {

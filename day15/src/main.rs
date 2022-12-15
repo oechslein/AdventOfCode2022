@@ -21,11 +21,11 @@ use itertools::Itertools;
 /// The main function prints out the results for part1 and part2
 /// AOC
 fn main() {
-    utils::with_measure("Part 1", || solve_part1("day15/test.txt", 10));
+    //utils::with_measure("Part 1", || solve_part1("day15/test.txt", 10));
     //utils::with_measure("Part 1", || solve_part1("day15/input.txt", 2000000));
 
-    //utils::with_measure("Part 2", || solve_part2("day15/test.txt", 20));
-    utils::with_measure("Part 2", || solve_part2("day15/test.txt", 4000000));
+    utils::with_measure("Part 2", || solve_part2("day15/test.txt", 20));
+    utils::with_measure("Part 2", || solve_part2("day15/input.txt", 4000000));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -83,26 +83,19 @@ pub fn solve_part2(file_name: &str, max_x: isize) -> usize {
     //grid.print('.');
     //println!("");
 
-    for (_index, (sensor, beacon)) in input.iter().enumerate() {
-        let max_manhattan_distance = sensor.manhattan_distance(&beacon);
-        println!("{}: {:?} {:?}", _index, sensor, beacon);
+    for row in 0..=max_x {
+        //println!("{}/{}", row, max_x);
+        for (_index, (sensor, beacon)) in input.iter().enumerate() {
+            let max_manhattan_distance = sensor.manhattan_distance(&beacon);
+            //println!("{}/{} {}/{}: {:?} {:?}", row, max_x, _index+1, input.len(), sensor, beacon);
 
-        // can this sensor / beacon combination influence the row?
-        // row must be in reach of sensor + (distance between sensor and beacon)
-        if (0..max_x)
-            .map(|y| sensor.y - y)
-            .all(|diff_y| diff_y.abs() > max_manhattan_distance as isize)
-        {
-            continue;
-        }
-        /*
-        let sensor_row_distance = sensor.y - max_x;
-        if sensor_row_distance.abs() > max_manhattan_distance as isize {
-            continue;
-        }
-         */
+            // can this sensor / beacon combination influence the row?
+            // row must be in reach of sensor + (distance between sensor and beacon)
+            let sensor_row_distance = sensor.y - row;
+            if sensor_row_distance.abs() > max_manhattan_distance as isize {
+                continue;
+            }
 
-        for row in 0..=max_x {
             // not all neighbors are relevant, only those that match row
             for neighboor in
                 get_all_neighbors_within_for_row(&grid, &sensor, max_manhattan_distance, row)
@@ -122,17 +115,17 @@ pub fn solve_part2(file_name: &str, max_x: isize) -> usize {
     //grid.print('x');
     //println!("");
 
-    let x = (0..=max_x)
+    println!("DONE");
+
+    let possible_beacon_pos = (0..=max_x)
         .cartesian_product(0..=max_x)
         .map(|(x, y)| Coor2DMut::new(x, y))
         .filter(|coor| grid.get(coor) == Some(&'.') || grid.get(coor).is_none())
         .collect_vec();
-    println!("{:?}", x);
+    println!("{:?}", possible_beacon_pos);
+        assert_eq!(possible_beacon_pos.len(), 1);
 
-    grid.all_cells()
-        .filter(|(coor, _)| coor.y == max_x)
-        .filter(|(_, ch)| ch == &&'#')
-        .count()
+    possible_beacon_pos.into_iter().map(|coor| coor.x * 4000000 + coor.y).next().unwrap() as usize
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -217,12 +210,12 @@ fn get_all_neighbors_within_for_row(
     println!("{:?}", neighbors_within.iter().collect_vec());
     println!(
         "{:?}",
-        get_all_neighbors_within_old(grid, sensor_coor, max_manhattan_distance)
+        get_all_neighbors_within_old(_grid, sensor_coor, max_manhattan_distance)
             .into_iter()
             .filter(|c| c.y == row)
             .collect_vec()
     );
-     */
+    */
     neighbors_within
     //get_all_neighbors_within_old(grid, coor, max_manhattan_distance)
 }
@@ -242,12 +235,12 @@ mod tests {
 
     #[test]
     fn verify1() {
-        assert_eq!(solve_part1("input.txt", 2000000), 42);
+        assert_eq!(solve_part1("input.txt", 2000000), 5299855);
     }
 
     #[test]
     fn test2() {
-        assert_eq!(solve_part2("test.txt", 20), 42);
+        assert_eq!(solve_part2("test.txt", 20), 56000011);
     }
 
     #[test]
