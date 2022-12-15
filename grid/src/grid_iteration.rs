@@ -80,7 +80,7 @@ pub(crate) fn all_cells(width: Coor2DIndex, height: Coor2DIndex) -> impl Iterato
 }
 
 /// Returns an iterator over the directions for given neighborhood type
-fn all_adjacent_cells(n: Neighborhood) -> impl Iterator<Item = Direction> {
+pub(crate) fn all_adjacent_cells(n: Neighborhood) -> impl Iterator<Item = Direction> {
     match n {
         Orthogonal => vec![North, South, East, West],
         Diagonal => vec![NorthWest, NorthEast, SouthEast, SouthWest],

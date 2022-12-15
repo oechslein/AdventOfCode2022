@@ -12,5 +12,6 @@
 extern crate derive_builder;
 
 pub mod grid_array;
+pub mod grid_hashmap;
 pub mod grid_iteration;
 pub mod grid_types;
