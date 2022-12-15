@@ -17,6 +17,9 @@ use grid::{
 };
 use itertools::Itertools;
 
+use gcollections::ops::*;
+use interval::interval_set::*;
+
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2
 /// AOC
@@ -24,7 +27,7 @@ fn main() {
     //utils::with_measure("Part 1", || solve_part1("day15/test.txt", 10));
     //utils::with_measure("Part 1", || solve_part1("day15/input.txt", 2000000));
 
-    utils::with_measure("Part 2", || solve_part2("day15/test.txt", 20));
+    //utils::with_measure("Part 2", || solve_part2("day15/test.txt", 20));
     utils::with_measure("Part 2", || solve_part2("day15/input.txt", 4000000));
 }
 
@@ -65,61 +68,40 @@ pub fn solve_part1(file_name: &str, row: isize) -> usize {
         .count()
 }
 
-pub fn solve_part2(file_name: &str, max_x: i32) -> i64 {
-    let input: Vec<(Coor2DMut<i32>, Coor2DMut<i32>)> = parse_sensor_beacon_list(file_name);
+pub fn solve_part2(file_name: &str, max_x: isize) -> isize {
+    let input = parse_sensor_beacon_list(file_name);
+    let full_interval = vec![(0, max_x)].to_interval_set();
 
-    // Rectangles (start corner and end corner, inclusive). Begin with one covering whole possible area
-    let mut possibilities = vec![([-max_x, 0], [max_x, 2 * max_x])];
-    let mut new_possibilities = Vec::new();
-    for (sensor_coor, beacon_coor) in input {
-        let radius = sensor_coor.manhattan_distance(&beacon_coor) as i32;
-
-        // Coordinate system rotated by 45°. Only even coordinates in target system are integer in source system
-        let center = Coor2DMut::new(sensor_coor.x - sensor_coor.y, sensor_coor.x + sensor_coor.y);
-        let start = Coor2DMut::new(center.x - radius, center.y - radius).to_array();
-        let end = Coor2DMut::new(center.x + radius, center.y + radius).to_array();
-
-        for &p in &possibilities {
-            let (p_start, p_end) = p;
-            if !(0..2).all(|i| start[i] <= p_end[i] && p_start[i] <= end[i]) {
-                new_possibilities.push(p);
-            } else {
-                if start[0] > p_start[0] {
-                    new_possibilities.push((p_start, [start[0] - 1, p_end[1]]));
-                }
-                if p_end[0] > end[0] {
-                    new_possibilities.push(([end[0] + 1, p_start[1]], p_end));
-                }
-                if start[1] > p_start[1] {
-                    new_possibilities.push((
-                        [std::cmp::max(start[0], p_start[0]), p_start[1]],
-                        [std::cmp::min(end[0], p_end[0]), start[1] - 1],
-                    ));
-                }
-                if p_end[1] > end[1] {
-                    new_possibilities.push((
-                        [std::cmp::max(start[0], p_start[0]), end[1] + 1],
-                        [std::cmp::min(end[0], p_end[0]), p_end[1]],
-                    ));
-                }
-            }
+    for row in (0..=max_x).rev() {
+        let mut interval = Vec::new().to_interval_set();
+        for (_index, (sensor, beacon)) in input.iter().enumerate() {
+            interval = interval.union(&sensor_beacon_row_interval(sensor, beacon, row as isize));
         }
-        possibilities.clear();
 
-        std::mem::swap(&mut possibilities, &mut new_possibilities);
-    }
-
-    // Assume there is a 1x1 rectangle somewhere within the allowed area
-    for (start, end) in possibilities {
-        if start == end && (start[0] + start[1]) % 2 == 0 {
-            // Transform back into original coordinate system
-            let pos = [(start[1] + start[0]) / 2, (start[1] - start[0]) / 2];
-            if pos.iter().all(|&x| x >= 0 && x <= max_x) {
-                return pos[0] as i64 * max_x as i64 + pos[1] as i64;
-            }
+        let intersect = interval.intersection(&full_interval);
+        if intersect != full_interval {
+            let first_interval = intersect.iter().next().unwrap();
+            let x = first_interval.upper() + 1;
+            assert!(!intersect.contains(&x));
+            return x * 4_000_000 + row;
         }
     }
-    unreachable!("No solution found");
+
+    unreachable!()
+}
+
+fn sensor_beacon_row_interval(
+    sensor: &Coor2DMut<isize>,
+    beacon: &Coor2DMut<isize>,
+    row: isize,
+) -> IntervalSet<isize> {
+    let radius = sensor.manhattan_distance(beacon) as isize;
+    let offset = radius - (sensor.y - row).abs();
+    if offset < 0 {
+        IntervalSet::empty()
+    } else {
+        vec![(sensor.x - offset, sensor.x + offset)].to_interval_set()
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
