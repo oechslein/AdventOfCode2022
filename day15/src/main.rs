@@ -69,6 +69,7 @@ pub fn solve_part2(file_name: &str, max_x: isize) -> usize {
     let input = parse_sensor_beacon_list(file_name);
     let mut grid = create_grid(&input);
 
+    /*
     (0..=max_x)
         .cartesian_product(0..=max_x)
         .map(|(x, y)| Coor2DMut::new(x, y))
@@ -77,6 +78,7 @@ pub fn solve_part2(file_name: &str, max_x: isize) -> usize {
                 grid.set(coor, '.');
             }
         });
+     */
 
     //grid.print('.');
     //println!("");
@@ -87,7 +89,10 @@ pub fn solve_part2(file_name: &str, max_x: isize) -> usize {
 
         // can this sensor / beacon combination influence the row?
         // row must be in reach of sensor + (distance between sensor and beacon)
-        if (0..max_x).map(|y| sensor.y - y).all(|diff_y| diff_y.abs() > max_manhattan_distance as isize) {
+        if (0..max_x)
+            .map(|y| sensor.y - y)
+            .all(|diff_y| diff_y.abs() > max_manhattan_distance as isize)
+        {
             continue;
         }
         /*
@@ -103,8 +108,12 @@ pub fn solve_part2(file_name: &str, max_x: isize) -> usize {
                 get_all_neighbors_within_for_row(&grid, &sensor, max_manhattan_distance, row)
             {
                 match grid.get(&neighboor) {
-                    None => {grid.set(neighboor, '#');},
-                    Some('.') => {grid.set(neighboor, '#');},
+                    None => {
+                        grid.set(neighboor, '#');
+                    }
+                    Some('.') => {
+                        grid.set(neighboor, '#');
+                    }
                     _ => {}
                 }
             }
@@ -116,7 +125,7 @@ pub fn solve_part2(file_name: &str, max_x: isize) -> usize {
     let x = (0..=max_x)
         .cartesian_product(0..=max_x)
         .map(|(x, y)| Coor2DMut::new(x, y))
-        .filter(|coor| grid.get(coor) == Some(&'.'))
+        .filter(|coor| grid.get(coor) == Some(&'.') || grid.get(coor).is_none())
         .collect_vec();
     println!("{:?}", x);
 
