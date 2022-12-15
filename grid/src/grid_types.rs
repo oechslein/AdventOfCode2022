@@ -52,6 +52,12 @@ impl<T: Clone + Ord + Eq> Coor2DMut<T> {
         Self::new(t.0, t.1)
     }
 
+    /// to array
+    pub fn to_array(&self) -> [T; 2] {
+        [self.x.clone(), self.y.clone()]
+    }
+
+
     /// min
     pub fn min(&self, other: &Self) -> Self {
         Self::new(
