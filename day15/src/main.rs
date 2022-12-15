@@ -65,67 +65,67 @@ pub fn solve_part1(file_name: &str, row: isize) -> usize {
         .count()
 }
 
-pub fn solve_part2(file_name: &str, max_x: isize) -> usize {
-    let input = parse_sensor_beacon_list(file_name);
-    let mut grid = create_grid(&input);
+pub fn solve_part2(file_name: &str, max_x: i32) -> i64 {
+    let input = utils::file_to_string(file_name);
 
-    /*
-    (0..=max_x)
-        .cartesian_product(0..=max_x)
-        .map(|(x, y)| Coor2DMut::new(x, y))
-        .for_each(|coor| {
-            if grid.get(&coor).is_none() {
-                grid.set(coor, '.');
-            }
+    // Rectangles (start corner and end corner, inclusive). Begin with one covering whole possible area
+    let mut possibilities = vec![([-max_x, 0], [max_x, 2 * max_x])];
+    let mut new_possibilities = Vec::new();
+    for line in input.lines() {
+        let mut parts = line.split_whitespace().filter_map(|word| {
+            word.trim_end_matches(&[',', ':']).split("=").nth(1).map(|num| num.parse::<i32>().unwrap())
         });
-     */
+        let sensor = [parts.next().unwrap(), parts.next().unwrap()];
+        let beacon = [parts.next().unwrap(), parts.next().unwrap()];
 
-    //grid.print('.');
-    //println!("");
+        let radius = sensor.iter().zip(&beacon).map(|(&a, &b)| (a - b).abs()).sum::<i32>();
 
-    for row in 0..=max_x {
-        //println!("{}/{}", row, max_x);
-        for (_index, (sensor, beacon)) in input.iter().enumerate() {
-            let max_manhattan_distance = sensor.manhattan_distance(&beacon);
-            //println!("{}/{} {}/{}: {:?} {:?}", row, max_x, _index+1, input.len(), sensor, beacon);
+        // Coordinate system rotated by 45°. Only even coordinates in target system are integer in source system
+        let center = [sensor[0] - sensor[1], sensor[0] + sensor[1]];
+        let start = [center[0] - radius, center[1] - radius];
+        let end = [center[0] + radius, center[1] + radius];
 
-            // can this sensor / beacon combination influence the row?
-            // row must be in reach of sensor + (distance between sensor and beacon)
-            let sensor_row_distance = sensor.y - row;
-            if sensor_row_distance.abs() > max_manhattan_distance as isize {
-                continue;
-            }
-
-            // not all neighbors are relevant, only those that match row
-            for neighboor in
-                get_all_neighbors_within_for_row(&grid, &sensor, max_manhattan_distance, row)
-            {
-                match grid.get(&neighboor) {
-                    None => {
-                        grid.set(neighboor, '#');
-                    }
-                    Some('.') => {
-                        grid.set(neighboor, '#');
-                    }
-                    _ => {}
+        for &p in &possibilities {
+            let (p_start, p_end) = p;
+            if !(0..2).all(|i| start[i] <= p_end[i] && p_start[i] <= end[i]) {
+                new_possibilities.push(p);
+            } else {
+                if start[0] > p_start[0] {
+                    new_possibilities.push((p_start, [start[0] - 1, p_end[1]]));
+                }
+                if p_end[0] > end[0] {
+                    new_possibilities.push(([end[0] + 1, p_start[1]], p_end));
+                }
+                if start[1] > p_start[1] {
+                    new_possibilities.push((
+                        [std::cmp::max(start[0], p_start[0]), p_start[1]],
+                        [std::cmp::min(end[0], p_end[0]), start[1] - 1],
+                    ));
+                }
+                if p_end[1] > end[1] {
+                    new_possibilities.push(([
+                        std::cmp::max(start[0], p_start[0]), end[1] + 1],
+                        [std::cmp::min(end[0], p_end[0]), p_end[1]],
+                    ));
                 }
             }
         }
+        possibilities.clear();
+
+        std::mem::swap(&mut possibilities, &mut new_possibilities);
     }
-    //grid.print('x');
-    //println!("");
 
-    println!("DONE");
-
-    let possible_beacon_pos = (0..=max_x)
-        .cartesian_product(0..=max_x)
-        .map(|(x, y)| Coor2DMut::new(x, y))
-        .filter(|coor| grid.get(coor) == Some(&'.') || grid.get(coor).is_none())
-        .collect_vec();
-    println!("{:?}", possible_beacon_pos);
-        assert_eq!(possible_beacon_pos.len(), 1);
-
-    possible_beacon_pos.into_iter().map(|coor| coor.x * 4000000 + coor.y).next().unwrap() as usize
+    // Assume there is a 1x1 rectangle somewhere within the allowed area
+    for (start, end) in possibilities {
+        if start == end && (start[0] + start[1]) % 2 == 0 {
+            // Transform back into original coordinate system
+            let pos = [(start[1] + start[0]) / 2, (start[1] - start[0]) / 2];
+            if pos.iter().all(|&x| x >= 0 && x <= max_x) {
+                return pos[0] as i64 * max_x as i64 + pos[1] as i64;
+            }
+        }
+    }
+    unreachable!("No solution found");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
