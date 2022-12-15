@@ -1,6 +1,6 @@
-#![allow(unused_imports)]
-#![allow(dead_code)]
-#![allow(unused_must_use)]
+//#![allow(unused_imports)]
+//#![allow(dead_code)]
+//#![allow(unused_must_use)]
 #![feature(test)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
@@ -9,11 +9,11 @@
     clippy::must_use_candidate
 )]
 
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashSet};
 
 use grid::{
     grid_hashmap::{GridHashMap, GridHashMapBuilder},
-    grid_types::{Coor2DMut, Neighborhood, Topology},
+    grid_types::{Coor2DMut, Neighborhood},
 };
 use itertools::Itertools;
 
@@ -25,7 +25,7 @@ use interval::interval_set::*;
 /// AOC
 fn main() {
     //utils::with_measure("Part 1", || solve_part1("day15/test.txt", 10));
-    //utils::with_measure("Part 1", || solve_part1("day15/input.txt", 2000000));
+    utils::with_measure("Part 1", || solve_part1("day15/input.txt", 2000000));
 
     //utils::with_measure("Part 2", || solve_part2("day15/test.txt", 20));
     utils::with_measure("Part 2", || solve_part2("day15/input.txt", 4000000));
@@ -143,36 +143,12 @@ where
         .collect_vec()
 }
 
-fn get_all_neighbors_within_old(
-    grid: &GridHashMap<char>,
-    coor: &Coor2DMut<isize>,
-    max_manhattan_distance: usize,
-) -> HashSet<Coor2DMut<isize>> {
-    let mut neighbors_within = HashSet::new();
-    let mut open_neighbors = vec![];
-    open_neighbors.push(coor.clone());
-
-    while let Some(curr_coor) = open_neighbors.pop() {
-        neighbors_within.insert(curr_coor.clone());
-        for neighbor in grid.neighborhood_cell_indexes(&curr_coor) {
-            if !neighbors_within.contains(&neighbor)
-                && coor.manhattan_distance(&neighbor) <= max_manhattan_distance
-            {
-                open_neighbors.push(neighbor.clone());
-            }
-        }
-    }
-    neighbors_within
-}
-
 fn get_all_neighbors_within_for_row(
     _grid: &GridHashMap<char>,
     sensor_coor: &Coor2DMut<isize>,
     max_manhattan_distance: usize,
     row: isize,
 ) -> HashSet<Coor2DMut<isize>> {
-    // search from coor.x, row to the left and to the right, stop is manhatten_distance is reached
-
     let mut neighbors_within = HashSet::new();
     let mut distance_to_sensor_x = 0;
 
@@ -188,18 +164,7 @@ fn get_all_neighbors_within_for_row(
         distance_to_sensor_x += 1;
     }
 
-    /*
-    println!("{:?}", neighbors_within.iter().collect_vec());
-    println!(
-        "{:?}",
-        get_all_neighbors_within_old(_grid, sensor_coor, max_manhattan_distance)
-            .into_iter()
-            .filter(|c| c.y == row)
-            .collect_vec()
-    );
-    */
     neighbors_within
-    //get_all_neighbors_within_old(grid, coor, max_manhattan_distance)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
