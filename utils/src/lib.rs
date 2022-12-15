@@ -120,7 +120,7 @@ pub fn with_measure<T: Debug>(title: &str, f: fn() -> T) -> T {
 }
 
 /// Returns a range from "from" to "to" (if to is smaller than from a range from "to" to "from" is returned)
-pub fn inclusive_range_always(from: usize, to: usize) -> RangeInclusive<usize> {
+pub fn inclusive_range_always<T: PartialOrd>(from: T, to: T) -> RangeInclusive<T> {
     if from < to {
         from..=to
     } else {
