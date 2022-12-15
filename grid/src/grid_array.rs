@@ -270,10 +270,14 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
     */
 
     /// Print grid
-    pub fn print(&self) {
+    pub fn print(&self, add_stars: bool) {
         for y in 0..self.height {
             for x in 0..self.width {
-                print!("{}*", self.get_unchecked(x, y));
+                print!(
+                    "{}{}",
+                    self.get_unchecked(x, y),
+                    if add_stars { "*" } else { "" }
+                );
             }
             println!();
         }

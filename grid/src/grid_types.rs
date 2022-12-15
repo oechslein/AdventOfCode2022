@@ -53,19 +53,42 @@ impl<T: Clone + Ord + Eq> Coor2DMut<T> {
     }
 
     /// min
-    pub fn min(&self, other: Self) -> Self {
+    pub fn min(&self, other: &Self) -> Self {
         Self::new(
-            self.x.clone().min(other.x),
-            self.y.clone().min(other.y),
+            self.x.clone().min(other.x.clone()),
+            self.y.clone().min(other.y.clone()),
         )
     }
 
     /// max
-    pub fn max(&self, other: Self) -> Self {
+    pub fn max(&self, other: &Self) -> Self {
         Self::new(
-            self.x.clone().max(other.x),
-            self.y.clone().max(other.y),
+            self.x.clone().max(other.x.clone()),
+            self.y.clone().max(other.y.clone()),
         )
+    }
+
+    /// Returns abs
+    pub fn abs(&self) -> usize
+    where
+        T: TryInto<isize>,
+        <T as TryInto<isize>>::Error: std::fmt::Debug,
+    {
+        #![allow(clippy::cast_sign_loss)]
+        ((self.x.clone().try_into().unwrap()).abs() + (self.y.clone().try_into().unwrap()).abs())
+            as usize
+    }
+
+    /// Returns manhattan distance
+    pub fn manhattan_distance(&self, other: &Coor2DMut<T>) -> usize
+    where
+        T: TryInto<isize>,
+        <T as TryInto<isize>>::Error: std::fmt::Debug,
+    {
+        #![allow(clippy::cast_sign_loss)]
+        ((self.x.clone().try_into().unwrap() - other.clone().x.try_into().unwrap()).abs()
+            + (self.y.clone().try_into().unwrap() - other.clone().y.try_into().unwrap()).abs())
+            as usize
     }
 }
 

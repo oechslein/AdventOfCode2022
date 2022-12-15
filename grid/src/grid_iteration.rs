@@ -103,13 +103,6 @@ pub(crate) fn neighborhood_cells(
         .filter_map(move |direction| adjacent_cell(t, width, height, index.clone(), direction))
 }
 
-/// Returns manhattan distance
-pub fn manhattan_distance(index1: Coor2D, index2: Coor2D) -> usize {
-    #![allow(clippy::cast_sign_loss)]
-    ((isize::try_from(index1.x).unwrap() - isize::try_from(index2.x).unwrap()).abs()
-        + (isize::try_from(index1.y).unwrap() - isize::try_from(index2.y).unwrap()).abs())
-        as usize
-}
 
 #[cfg(test)]
 mod tests {
@@ -217,23 +210,23 @@ mod tests {
     #[test]
     fn manhattan_distance_test() {
         assert_eq!(
-            manhattan_distance(Coor2D::new(11, 13), Coor2D::new(11, 13)),
+            Coor2D::new(11, 13).manhattan_distance(&Coor2D::new(11, 13)),
             0
         );
         assert_eq!(
-            manhattan_distance(Coor2D::new(11, 13), Coor2D::new(11, 12)),
+            Coor2D::new(11, 13).manhattan_distance(&Coor2D::new(11, 12)),
             1
         );
         assert_eq!(
-            manhattan_distance(Coor2D::new(11, 13), Coor2D::new(11, 14)),
+            Coor2D::new(11, 13).manhattan_distance(&Coor2D::new(11, 14)),
             1
         );
         assert_eq!(
-            manhattan_distance(Coor2D::new(11, 13), Coor2D::new(10, 13)),
+            Coor2D::new(11, 13).manhattan_distance(&Coor2D::new(10, 13)),
             1
         );
         assert_eq!(
-            manhattan_distance(Coor2D::new(11, 13), Coor2D::new(10, 12)),
+            Coor2D::new(11, 13).manhattan_distance(&Coor2D::new(10, 12)),
             2
         );
     }
