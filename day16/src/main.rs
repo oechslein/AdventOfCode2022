@@ -38,7 +38,7 @@ pub fn solve_part1(file_name: &str) -> isize {
     let valves = parse(file_name);
     //println!("{:?}", valves);
 
-    let valves_with_flow = create_valves_with_flow_and_aa(&valves);
+    let valves_with_flow = create_valves_with_flow(&valves, false);
     let valve_shorted_pathes = create_valve_shorted_pathes(&valves);
     //println!("{} {:?}", valve_shorted_pathes.len(), valve_shorted_pathes);
 
@@ -53,7 +53,7 @@ pub fn solve_part2(file_name: &str) -> isize {
     let valves = parse(file_name);
     //println!("{:?}", valves);
 
-    let valves_with_flow = create_valves_with_flow_and_aa(&valves);
+    let valves_with_flow = create_valves_with_flow(&valves, false);
     let valve_shorted_pathes = create_valve_shorted_pathes(&valves);
     //println!("{} {:?}", valve_shorted_pathes.len(), valve_shorted_pathes);
 
@@ -61,7 +61,7 @@ pub fn solve_part2(file_name: &str) -> isize {
     // you have two persons now that can work in parallel, call get_max_pressure twice with every possible split of the valves
     create_splits(&valves_with_flow)
         .collect_vec()
-        .iter() // parallelize
+        .par_iter() // parallelize
         .map(|(valve_set_1, valve_set_2)| {
             get_max_pressure(valve_set_1, limit, &valve_shorted_pathes, &valves)
                 + get_max_pressure(valve_set_2, limit, &valve_shorted_pathes, &valves)
@@ -75,12 +75,15 @@ pub fn solve_part2(file_name: &str) -> isize {
 fn create_valve_shorted_pathes(
     valves: &HashMap<String, Valve>,
 ) -> HashMap<(String, String), isize> {
-    let valves_with_flow = create_valves_with_flow_and_aa(valves);
+    let valves_with_flow = create_valves_with_flow(valves, true);
     let mut valve_shorted_pathes = HashMap::new();
     for (start_valve, goal_valve) in valves_with_flow
         .iter()
         .cartesian_product(valves_with_flow.iter())
     {
+        if goal_valve.as_str() == "AA" {
+            continue;
+        }
         let result = dijkstra(
             start_valve,
             |node| {
@@ -100,10 +103,10 @@ fn create_valve_shorted_pathes(
     valve_shorted_pathes
 }
 
-fn create_valves_with_flow_and_aa(valves: &HashMap<String, Valve>) -> Vec<&String> {
+fn create_valves_with_flow(valves: &HashMap<String, Valve>, add_aa: bool) -> Vec<&String> {
     valves
         .iter()
-        .filter(|(k, v)| v.flow_rate > 0 || k.as_str() == "AA")
+        .filter(|(k, v)| v.flow_rate > 0 || (add_aa && k.as_str() == "AA"))
         .map(|(k, _)| k)
         .collect_vec()
 }
