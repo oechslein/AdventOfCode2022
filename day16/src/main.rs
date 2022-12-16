@@ -21,8 +21,8 @@ use pathfinding::prelude::dijkstra;
 /// The main function prints out the results for part1 and part2
 /// AOC
 fn main() {
-    utils::with_measure("Part 1", || solve_part1("day16/input.txt"));
-    utils::with_measure("Part 2", || solve_part2("day16/input.txt"));
+    utils::with_measure("Part 1", || solve_part1("day16/test.txt"));
+    utils::with_measure("Part 2", || solve_part2("day16/test.txt"));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -38,8 +38,28 @@ pub fn solve_part1(file_name: &str) -> isize {
     let valves = parse(file_name);
     //println!("{:?}", valves);
 
-    let valves_with_flow = create_valves_with_flow(&valves, false);
-    let valve_shorted_pathes = create_valve_shorted_pathes(&valves);
+    let mut valve_shorted_pathes = HashMap::new();
+    let valves_with_flow = valves
+        .iter()
+        .filter(|(_, v)| v.flow_rate > 0)
+        .map(|(k, _)| k)
+        .collect_vec();
+    let start_node = "AA".to_string();
+    for (start_valve, goal_valve) in valves_with_flow
+        .iter()
+        .chain(vec![&start_node].iter())
+        .cartesian_product(valves_with_flow.iter())
+    {
+        let result = dijkstra(
+            start_valve,
+            |node| {
+                let curr_valve = &valves[*node];
+                curr_valve.tunnels.iter().map(|t| (t, 1)).collect_vec()
+            },
+            |node| node == goal_valve,
+        );
+        valve_shorted_pathes.insert((*start_valve, *goal_valve), result.unwrap().1);
+    }
     //println!("{} {:?}", valve_shorted_pathes.len(), valve_shorted_pathes);
 
     let limit = 30;
@@ -53,8 +73,28 @@ pub fn solve_part2(file_name: &str) -> isize {
     let valves = parse(file_name);
     //println!("{:?}", valves);
 
-    let valves_with_flow = create_valves_with_flow(&valves, false);
-    let valve_shorted_pathes = create_valve_shorted_pathes(&valves);
+    let mut valve_shorted_pathes = HashMap::new();
+    let valves_with_flow = valves
+        .iter()
+        .filter(|(_, v)| v.flow_rate > 0)
+        .map(|(k, _)| k)
+        .collect_vec();
+    let start_node = "AA".to_string();
+    for (start_valve, goal_valve) in valves_with_flow
+        .iter()
+        .chain(vec![&start_node].iter())
+        .cartesian_product(valves_with_flow.iter())
+    {
+        let result = dijkstra(
+            start_valve,
+            |node| {
+                let curr_valve = &valves[*node];
+                curr_valve.tunnels.iter().map(|t| (t, 1)).collect_vec()
+            },
+            |node| node == goal_valve,
+        );
+        valve_shorted_pathes.insert((*start_valve, *goal_valve), result.unwrap().1);
+    }
     //println!("{} {:?}", valve_shorted_pathes.len(), valve_shorted_pathes);
 
     let limit = 26;
@@ -70,52 +110,11 @@ pub fn solve_part2(file_name: &str) -> isize {
         .unwrap()
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-
-fn create_valve_shorted_pathes(
-    valves: &HashMap<String, Valve>,
-) -> HashMap<(String, String), isize> {
-    let valves_with_flow = create_valves_with_flow(valves, true);
-    let mut valve_shorted_pathes = HashMap::new();
-    for (start_valve, goal_valve) in valves_with_flow
-        .iter()
-        .cartesian_product(valves_with_flow.iter())
-    {
-        if goal_valve.as_str() == "AA" {
-            continue;
-        }
-        let result = dijkstra(
-            start_valve,
-            |node| {
-                let curr_valve = &valves[*node];
-                curr_valve.tunnels.iter().map(|t| (t, 1)).collect_vec()
-            },
-            |node| node == goal_valve,
-        );
-        valve_shorted_pathes.insert(
-            (
-                start_valve.clone().to_string(),
-                goal_valve.clone().to_string(),
-            ),
-            result.unwrap().1,
-        );
-    }
-    valve_shorted_pathes
-}
-
-fn create_valves_with_flow(valves: &HashMap<String, Valve>, add_aa: bool) -> Vec<&String> {
-    valves
-        .iter()
-        .filter(|(k, v)| v.flow_rate > 0 || (add_aa && k.as_str() == "AA"))
-        .map(|(k, _)| k)
-        .collect_vec()
-}
-
 fn create_splits<'a>(
     valves_with_flow: &'a Vec<&'a String>,
 ) -> impl Iterator<Item = (Vec<&'a String>, Vec<&'a String>)> {
     // only need to split until half since the other half is the same (mirrored)
-    (0..=valves_with_flow.len()).flat_map(move |i| create_i_sized_splits(&valves_with_flow, i))
+    (0..=valves_with_flow.len() / 2).flat_map(move |i| create_i_sized_splits(&valves_with_flow, i))
 }
 
 fn create_i_sized_splits<'a>(
@@ -139,11 +138,12 @@ fn create_i_sized_splits<'a>(
 fn get_max_pressure(
     remaining: &Vec<&String>,
     limit: isize,
-    valve_shorted_pathes: &HashMap<(String, String), isize>,
+    valve_shorted_pathes: &HashMap<(&String, &String), isize>,
     valves: &HashMap<String, Valve>,
 ) -> isize {
+    let start_elem = ("AA".to_string(), 0, 0, 0, remaining.clone());
     let mut open = Vec::new();
-    open.push(("AA".to_string(), 0, 0, 0, remaining.clone()));
+    open.push(start_elem.clone());
     let mut max_pressure = 0;
     while let Some((curr_tunnel, curr_time, curr_pressure, curr_flow, remaining)) = open.pop() {
         let pressure_at_end = curr_pressure + (limit - curr_time) * curr_flow;
@@ -152,8 +152,7 @@ fn get_max_pressure(
         }
         for new_tunnel_index in 0..remaining.len() {
             let new_tunnel = remaining[new_tunnel_index];
-            let needed_minutes =
-                valve_shorted_pathes[&(curr_tunnel.clone(), new_tunnel.clone())] + 1; // distance and open
+            let needed_minutes = valve_shorted_pathes[&(&curr_tunnel, new_tunnel)] + 1; // distance and open
             if curr_time + needed_minutes <= limit {
                 open.push((
                     new_tunnel.clone(),
