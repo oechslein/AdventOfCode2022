@@ -12,6 +12,7 @@ itertools = "0.10.1"       # Extra iterator adaptors, iterator methods, free fun
 
 pathfinding = "4.1.1"   # search algorithms A*, Dijkstra, ..
 rayon = "1.6.0"            # Parallel
+fxhash = "0.2"
 
 #derive_builder = "0.12.0"
 #cached = "0.40.0"          # Caching structures and simplified function memoization
