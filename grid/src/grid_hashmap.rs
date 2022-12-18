@@ -57,6 +57,11 @@ where
         self.data.insert(coor, new_value)
     }
 
+    /// clear element on x, y and return old element
+    pub fn remove(&mut self, coor: Coor2DMut<isize>) -> Option<T> {
+        self.data.remove(&coor)
+    }
+
     /// return all indexes
     pub fn all_indexes<'a>(&'a self) -> impl Iterator<Item = Coor2DMut<isize>> + 'a {
         self.data.keys().cloned()
