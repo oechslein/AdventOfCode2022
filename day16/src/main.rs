@@ -20,33 +20,28 @@ use pathfinding::prelude::dijkstra;
 /// The main function prints out the results for part1 and part2
 /// AOC
 fn main() {
-    utils::with_measure("Part 1", || solve_part1("day16/test.txt"));
-    utils::with_measure("Part 2", || solve_part2("day16/test.txt"));
+    utils::with_measure("Part 1", || solve_part1("day16/input.txt"));
+    utils::with_measure("Part 2", || solve_part2("day16/input.txt"));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-pub fn solve_part1(file_name: &str) -> isize {
-    let valves_map = parse(file_name);
-    let valves_with_flow = create_valves_with_flow(&valves_map);
-    let valve_shorted_pathes = create_valve_to_valve_distances(&valves_with_flow, &valves_map);
-
-    get_max_pressure(valves_with_flow, 30, &valve_shorted_pathes, &valves_map)
+pub fn solve_part1(file_name: &str) -> usize {
+    let tunnel_system = TunnelSystem::new(30, parse(file_name));
+    tunnel_system.get_max_pressure(tunnel_system.valves_with_flow.clone())
 }
 
-pub fn solve_part2(file_name: &str) -> isize {
-    let valves_map = parse(file_name);
-    let valves_with_flow = create_valves_with_flow(&valves_map);
-    let valve_shorted_pathes = create_valve_to_valve_distances(&valves_with_flow, &valves_map);
+pub fn solve_part2(file_name: &str) -> usize {
+    let tunnel_system = TunnelSystem::new(26, parse(file_name));
 
-    let limit = 26;
     // you have two persons now that can work in parallel, call get_max_pressure twice with every possible split of the valves
-    create_splits(&valves_with_flow)
+    tunnel_system
+        .create_splits()
         .par_iter() // parallelize
         .cloned()
         .map(|(valve_set_1, valve_set_2)| {
-            get_max_pressure(valve_set_1, limit, &valve_shorted_pathes, &valves_map)
-                + get_max_pressure(valve_set_2, limit, &valve_shorted_pathes, &valves_map)
+            tunnel_system.get_max_pressure(valve_set_1)
+                + tunnel_system.get_max_pressure(valve_set_2)
         })
         .max()
         .unwrap()
@@ -56,7 +51,7 @@ pub fn solve_part2(file_name: &str) -> isize {
 
 type ValveId = usize;
 type ValveIdMap = FxHashMap<ValveId, Valve>;
-type DistanceHashMap = FxHashMap<(ValveId, ValveId), isize>;
+type DistanceHashMap = FxHashMap<(ValveId, ValveId), usize>;
 type ValveIdVec = Vec<ValveId>;
 
 #[derive(Debug, Clone)]
@@ -92,87 +87,102 @@ impl Valve {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-fn create_valves_with_flow(valves: &ValveIdMap) -> ValveIdVec {
-    valves
-        .iter()
-        .filter(|(_, v)| v.flow_rate > 0)
-        .map(|(k, _)| k.clone())
-        .collect_vec()
+struct TunnelSystem {
+    limit: usize,
+    valves: ValveIdMap,
+    valves_with_flow: ValveIdVec,
+    valve_to_valve_distances: DistanceHashMap,
 }
 
-fn create_valve_to_valve_distances(
-    valves_with_flow: &Vec<usize>,
-    valves: &ValveIdMap,
-) -> DistanceHashMap {
-    let get_sucessors = |node: &ValveId| -> Vec<(ValveId, isize)> {
-        valves[node].tunnels.iter().map(|t| (*t, 1)).collect_vec()
-    };
+impl TunnelSystem {
+    fn new(limit: usize, valves: ValveIdMap) -> Self {
+        let valves_with_flow = Self::_create_valves_with_flow(&valves);
 
-    let start_node = Valve::valve_string_to_number("AA");
-    valves_with_flow
-        .iter()
-        .chain(vec![&start_node].into_iter())
-        .cartesian_product(valves_with_flow.iter())
-        .map(|(start_valve, goal_valve)| {
-            let result = dijkstra(
-                start_valve,
-                |node| get_sucessors(node),
-                |node| node == goal_valve,
-            );
-            ((*start_valve, *goal_valve), result.unwrap().1)
-        })
-        .collect()
-}
+        let valve_to_valve_distances =
+            Self::_create_valve_to_valve_distances(&valves, &valves_with_flow);
 
-fn create_splits(valves_with_flow: &ValveIdVec) -> Vec<(Vec<ValveId>, Vec<ValveId>)> {
-    // only need to split until half since the other half is the same (mirrored)
-    (0..=valves_with_flow.len() / 2)
-        .flat_map(move |i| create_i_sized_splits(valves_with_flow.clone(), i))
-        .collect_vec()
-}
+        TunnelSystem {
+            limit,
+            valves,
+            valves_with_flow,
+            valve_to_valve_distances,
+        }
+    }
 
-fn create_i_sized_splits(
-    valves_with_flow: Vec<ValveId>,
-    i: usize,
-) -> impl Iterator<Item = (Vec<ValveId>, Vec<ValveId>)> {
-    valves_with_flow
-        .clone()
-        .into_iter()
-        .combinations(i)
-        .map(move |valve_set_1| {
-            let valve_set_2 = valves_with_flow
-                .iter()
-                .cloned()
-                .filter(|v| !valve_set_1.contains(v))
-                .collect_vec();
-            (valve_set_1, valve_set_2)
-        })
-}
+    fn _create_valves_with_flow(valves: &ValveIdMap) -> ValveIdVec {
+        valves
+            .iter()
+            .filter(|(_, v)| v.flow_rate > 0)
+            .map(|(k, _)| k.clone())
+            .collect_vec()
+    }
 
-fn get_max_pressure(
-    remaining: ValveIdVec,
-    limit: isize,
-    valve_shorted_pathes: &DistanceHashMap,
-    valves: &ValveIdMap,
-) -> isize {
-    let start_node = Node {
-        tunnel: Valve::valve_string_to_number("AA"),
-        time: 0,
-        pressure: 0,
-        flow: 0,
-        remaining: remaining,
-    };
-    start_node
-        .get_max_pressure_rec(valve_shorted_pathes, valves, limit)
-        .unwrap()
+    fn _create_valve_to_valve_distances(
+        valves: &ValveIdMap,
+        valves_with_flow: &ValveIdVec,
+    ) -> DistanceHashMap {
+        let start_node = Valve::valve_string_to_number("AA");
+        valves_with_flow
+            .iter()
+            .chain(vec![&start_node].into_iter())
+            .cartesian_product(valves_with_flow.iter())
+            .map(|(start_valve, goal_valve)| {
+                let result = dijkstra(
+                    start_valve,
+                    |node: &ValveId| -> Vec<(ValveId, usize)> {
+                        valves[node].tunnels.iter().map(|t| (*t, 1)).collect_vec()
+                    },
+                    |node| node == goal_valve,
+                );
+                ((*start_valve, *goal_valve), result.unwrap().1)
+            })
+            .collect()
+    }
+
+    fn create_splits(&self) -> Vec<(Vec<ValveId>, Vec<ValveId>)> {
+        // only need to split until half since the other half is the same (mirrored)
+        (0..=self.valves_with_flow.len() / 2)
+            .flat_map(move |i| self._create_i_sized_splits(i))
+            .collect_vec()
+    }
+
+    fn _create_i_sized_splits(&self, i: usize) -> Vec<(Vec<ValveId>, Vec<ValveId>)> {
+        self.valves_with_flow
+            .iter()
+            .cloned()
+            .combinations(i)
+            .map(move |valve_set_1| {
+                let valve_set_2 = self
+                    .valves_with_flow
+                    .iter()
+                    .cloned()
+                    .filter(|v| !valve_set_1.contains(v))
+                    .collect_vec();
+                (valve_set_1, valve_set_2)
+            })
+            .collect_vec()
+    }
+
+    fn get_max_pressure(&self, remaining: ValveIdVec) -> usize {
+        let start_node = Node {
+            tunnel: Valve::valve_string_to_number("AA"),
+            time: 0,
+            pressure: 0,
+            flow: 0,
+            remaining: remaining,
+        };
+        start_node
+            .get_max_pressure_rec(&self.valve_to_valve_distances, &self.valves, self.limit)
+            .unwrap()
+    }
 }
 
 #[derive(Debug, Clone)]
 struct Node {
     tunnel: ValveId,
-    time: isize,
-    pressure: isize,
-    flow: isize,
+    time: usize,
+    pressure: usize,
+    flow: usize,
     remaining: ValveIdVec,
 }
 
@@ -181,8 +191,8 @@ impl Node {
         &self,
         valve_shorted_pathes: &DistanceHashMap,
         valves: &ValveIdMap,
-        limit: isize,
-    ) -> Option<isize> {
+        limit: usize,
+    ) -> Option<usize> {
         let pressure_at_end = self.pressure + (limit - self.time) * self.flow;
         let max_pressure_rec = self
             .remaining
@@ -204,8 +214,8 @@ impl Node {
         new_tunnel: ValveId,
         valve_shorted_pathes: &DistanceHashMap,
         valves: &ValveIdMap,
-        limit: isize,
-    ) -> Option<isize> {
+        limit: usize,
+    ) -> Option<usize> {
         let needed_minutes = valve_shorted_pathes[&(self.tunnel, new_tunnel)] + 1;
         // + distance and +1 for open
         if self.time + needed_minutes > limit {
@@ -221,7 +231,7 @@ impl Node {
                 tunnel: new_tunnel.clone(),
                 time: self.time + needed_minutes,
                 pressure: self.pressure + needed_minutes * self.flow,
-                flow: self.flow + valves[&new_tunnel].flow_rate as isize,
+                flow: self.flow + valves[&new_tunnel].flow_rate,
                 remaining: new_remaining,
             };
             new_node.get_max_pressure_rec(valve_shorted_pathes, valves, limit)
