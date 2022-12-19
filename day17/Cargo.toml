@@ -10,7 +10,7 @@ grid = { path = "../grid/" }
 utils = { path = "../utils" }
 itertools = "0.10.1"       # Extra iterator adaptors, iterator methods, free functions, and macros.
 anyhow = "1.0.66"
-
+fxhash = "0.2"
 
 #derive_builder = "0.12.0"
 #cached = "0.40.0"          # Caching structures and simplified function memoization
@@ -51,7 +51,6 @@ anyhow = "1.0.66"
 #chrono = "0.4"
 #fnv = "1.0"
 #ahash = "0.7"
-#fxhash = "0.2"
 #bitvec = "0.22"
 
 #intervallum = "1.3.0"

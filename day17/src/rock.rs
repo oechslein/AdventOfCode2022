@@ -1,9 +1,12 @@
-use std::fmt::Display;
-
-use grid::grid_types::Coor2D;
-use itertools::Itertools;
-
-use crate::WIDTH;
+//#![allow(unused_imports)]
+//#![allow(dead_code)]
+//#![allow(unused_must_use)]
+#![deny(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::enum_glob_use,
+    clippy::many_single_char_names,
+    clippy::must_use_candidate
+)]
 
 #[derive(Debug, Clone)]
 pub struct RockStruct<const WIDTH: usize, const SIZE: usize> {
@@ -64,14 +67,6 @@ impl<const WIDTH: usize, const SIZE: usize> RockStruct<WIDTH, SIZE> {
     fn get_y_max(&self) -> usize {
         self._y_offset + self.get_height() - 1
     }
-
-    fn get_top_left(&self) -> Coor2D {
-        Coor2D::new(self._x_offset, self._y_offset + self.get_height())
-    }
-
-    fn get_lower_right(&self) -> Coor2D {
-        Coor2D::new(self._x_offset + self.get_width(), self._y_offset)
-    }
 }
 
 const _ROCK1_WIDTH: usize = 4;
@@ -87,7 +82,7 @@ const _ROCK2_DATA: [bool; _ROCK2_SIZE] = [false, true, false, true, true, true, 
 const _ROCK3_WIDTH: usize = 3;
 const _ROCK3_HEIGHT: usize = 3;
 const _ROCK3_SIZE: usize = _ROCK3_WIDTH * _ROCK3_HEIGHT;
-const _ROCK3_DATA: [bool; _ROCK3_SIZE] = [true, true, true, false, false, true, false, false, true, ];
+const _ROCK3_DATA: [bool; _ROCK3_SIZE] = [true, true, true, false, false, true, false, false, true];
 
 const _ROCK4_WIDTH: usize = 1;
 const _ROCK4_HEIGHT: usize = 4;
@@ -127,10 +122,6 @@ impl RockEnum {
             RockEnum::Rock4(rock) => rock.get(x, y),
             RockEnum::Rock5(rock) => rock.get(x, y),
         }
-    }
-
-    pub fn get_coor(&self, coor: Coor2D) -> bool {
-        self.get(coor.x, coor.y)
     }
 
     pub fn move_x(&mut self, delta_x: isize) {
@@ -190,26 +181,6 @@ impl RockEnum {
             RockEnum::Rock3(rock) => rock.get_y_max(),
             RockEnum::Rock4(rock) => rock.get_y_max(),
             RockEnum::Rock5(rock) => rock.get_y_max(),
-        }
-    }
-
-    pub fn get_top_left(&self) -> Coor2D {
-        match self {
-            RockEnum::Rock1(rock) => rock.get_top_left(),
-            RockEnum::Rock2(rock) => rock.get_top_left(),
-            RockEnum::Rock3(rock) => rock.get_top_left(),
-            RockEnum::Rock4(rock) => rock.get_top_left(),
-            RockEnum::Rock5(rock) => rock.get_top_left(),
-        }
-    }
-
-    pub fn get_lower_right(&self) -> Coor2D {
-        match self {
-            RockEnum::Rock1(rock) => rock.get_lower_right(),
-            RockEnum::Rock2(rock) => rock.get_lower_right(),
-            RockEnum::Rock3(rock) => rock.get_lower_right(),
-            RockEnum::Rock4(rock) => rock.get_lower_right(),
-            RockEnum::Rock5(rock) => rock.get_lower_right(),
         }
     }
 }

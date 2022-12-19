@@ -1,6 +1,6 @@
 //! Grid based on a hash map
 
-use std::collections::HashMap;
+use fxhash::FxHashMap;
 
 use crate::grid_types::{Coor2DMut, Direction};
 
@@ -17,9 +17,8 @@ where
     #[builder(default = "Neighborhood::Square")]
     neighborhood: Neighborhood,
 
-    //    #[builder(setter(skip), default = "self.create_data_vec()")]
-    #[builder(default = "HashMap::new()")]
-    data: HashMap<Coor2DMut<isize>, T>,
+    #[builder(default = "FxHashMap::default()")]
+    data: FxHashMap<Coor2DMut<isize>, T>,
 }
 
 impl<T> GridHashMap<T>
