@@ -1,0 +1,40 @@
+Blueprint 1:
+  Each ore robot costs 4 ore.
+  Each clay robot costs 2 ore.
+  Each obsidian robot costs 3 ore and 14 clay.
+  Each geode robot costs 2 ore and 7 obsidian
+
+Nach 24 Minutes
+* 24 ore von dem ersten ore Robot
+
+geo = 2ore + 7obs  // rechts ist immer höher
+obs = 3ore + 14clay // rechts ist immer höher
+clay = 2 ore
+ore = 4 ore
+
+Upper bound 24 geode
+you would need:
+24 geo = 2*24ore + 7*24obs = 2*24ore + 7*24(3ore + 14clay)) = 2*24ore + 7*24*3ore + 7*24*14clay = 2*24ore + 7*24*3ore + 7*24*14*2ore = 24*(2+7*3+7*14)ore = 2904ore
+=> 1 geo = 121 ore
+=> 24 ore = 24/121 geo
+
+
+Node:
+#spent_minutes
+#geo, #obs, #clay, #ore
+#geo_robot, #obs_robot, #clay_robot, #ore_robot
+Neighbor:
+# build_geo_robot, build_obs_robot, build_clay_robot, build_ore_robot, do_nothing
+
+Kombinationen (pro Blueprint): Tiefe: 24, Verzweigung (max): 5 => 5^24 (zu hoch 2^24 würde gehen)
+Pruning (über max geo) geht auch nicht, da unterschiedliche Strategien vielleicht am Ende "überholen".
+Doppelte Knoten wenigstens rausnehmen
+Heuristik?
+
+=> Ausrechnen?
+
+Formeln aufstellen
+
+ore(t) = ore(t-1) + ore_robot(t-1)
+ore_robot(t) = ??? 
+
