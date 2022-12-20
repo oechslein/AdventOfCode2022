@@ -100,9 +100,10 @@ jobs:
       run: cargo test --release --no-fail-fast --package=day18
       timeout-minutes: 5
 
-    - name: Run tests day19
-      run: cargo test --release --no-fail-fast --package=day19
-      timeout-minutes: 5
+# needs to much memory
+#    - name: Run tests day19
+#      run: cargo test --release --no-fail-fast --package=day19
+#      timeout-minutes: 5
 
     - name: Run tests day20
       run: cargo test --release --no-fail-fast --package=day20
