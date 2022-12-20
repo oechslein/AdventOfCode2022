@@ -30,7 +30,7 @@ pub fn solve_part2(file_name: &str) -> isize {
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn solve(original_input: Vec<(isize, usize)>, times: i32) -> isize {
+fn solve(original_input: Vec<(isize, usize)>, times: usize) -> isize {
     let mut input = original_input.clone();
     for _ in 0..times {
         for value in original_input.iter() {
