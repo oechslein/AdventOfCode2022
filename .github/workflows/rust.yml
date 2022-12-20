@@ -19,9 +19,55 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    #- name: Build
-    #  run: cargo build --release
-    - name: Run tests
-      run: cargo test --release --no-fail-fast -- --skip bench
-    - name: Run bench
-      run: cargo bench --no-fail-fast
+    - name: Run tests grid
+      run: cargo test --release --no-fail-fast --package=grid
+    - name: Run tests utils
+      run: cargo test --release --no-fail-fast --package=utils
+    - name: Run tests day01
+      run: cargo test --release --no-fail-fast --package=day01
+    - name: Run tests day02
+      run: cargo test --release --no-fail-fast --package=day02
+    - name: Run tests day03
+      run: cargo test --release --no-fail-fast --package=day03
+    - name: Run tests day04
+      run: cargo test --release --no-fail-fast --package=day04
+    - name: Run tests day05
+      run: cargo test --release --no-fail-fast --package=day05
+    - name: Run tests day06
+      run: cargo test --release --no-fail-fast --package=day06
+    - name: Run tests day07
+      run: cargo test --release --no-fail-fast --package=day07
+    - name: Run tests day08
+      run: cargo test --release --no-fail-fast --package=day08
+    - name: Run tests day09
+      run: cargo test --release --no-fail-fast --package=day09
+    - name: Run tests day10
+      run: cargo test --release --no-fail-fast --package=day10
+    - name: Run tests day11
+      run: cargo test --release --no-fail-fast --package=day11
+    - name: Run tests day12
+      run: cargo test --release --no-fail-fast --package=day12
+    - name: Run tests day13
+      run: cargo test --release --no-fail-fast --package=day13
+    - name: Run tests day14
+      run: cargo test --release --no-fail-fast --package=day14
+    - name: Run tests day15
+      run: cargo test --release --no-fail-fast --package=day15
+    - name: Run tests day16
+      run: cargo test --release --no-fail-fast --package=day16
+    - name: Run tests day17
+      run: cargo test --release --no-fail-fast --package=day17
+    - name: Run tests day18
+      run: cargo test --release --no-fail-fast --package=day18
+    - name: Run tests day19
+      run: cargo test --release --no-fail-fast --package=day19
+    - name: Run tests day20
+      run: cargo test --release --no-fail-fast --package=day20
+    - name: Run tests day21
+      run: cargo test --release --no-fail-fast --package=day21
+    - name: Run tests day22
+      run: cargo test --release --no-fail-fast --package=day22
+    - name: Run tests day23
+      run: cargo test --release --no-fail-fast --package=day23
+    - name: Run tests day24
+      run: cargo test --release --no-fail-fast --package=day24
