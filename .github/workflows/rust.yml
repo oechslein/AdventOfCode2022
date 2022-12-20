@@ -14,14 +14,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  AOC:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
     #- name: Build
-    #  run: cargo build --release --verbose
+    #  run: cargo build --release
     - name: Run tests
-      run: cargo test --release --verbose
+      run: cargo test --release --no-fail-fast -- --skip bench
     - name: Run bench
-      run: cargo bench --verbose
+      run: cargo bench --no-fail-fast

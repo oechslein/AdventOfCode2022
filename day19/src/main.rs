@@ -278,11 +278,14 @@ mod tests {
         assert_eq!(solve_part2("input.txt"), 14725);
     }
 
+    // Too slow
+    #[ignore]
     #[bench]
     fn benchmark_part1(b: &mut Bencher) {
         b.iter(|| solve_part1("input.txt"));
     }
 
+    #[ignore]
     #[bench]
     fn benchmark_part2(b: &mut Bencher) {
         b.iter(|| solve_part2("input.txt"));
