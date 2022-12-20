@@ -209,21 +209,6 @@ impl Blueprint {
             _ => 0,
         }
     }
-
-    fn total_virtual_ore_costs(&self, robot: Element) -> usize {
-        match robot {
-            Element::Ore => self.ore_robot_cost,
-            Element::Clay => self.clay_robot_cost,
-            Element::Obsidian => {
-                self.obsidian_robot_cost.0
-                    + self.obsidian_robot_cost.1 * self.total_virtual_ore_costs(Element::Clay)
-            }
-            Element::Geode => {
-                self.geode_robot_cost.0
-                    + self.geode_robot_cost.1 * self.total_virtual_ore_costs(Element::Obsidian)
-            }
-        }
-    }
 }
 
 fn parse_blueprints(file_name: &str) -> Vec<Blueprint> {
