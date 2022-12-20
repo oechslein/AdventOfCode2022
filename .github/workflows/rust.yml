@@ -14,12 +14,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  AllTests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        package: [grid, utils, day01]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Run tests ${{matrix.package}}
+      run: cargo test --release --no-fail-fast --package=${{matrix.package}}
+      timeout-minutes: 5
+
   AOC:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
 
+    - name: Compile everything
+      run: cargo test --release --no-fail-fast --no-run
+      timeout-minutes: 5
+      
     - name: Run tests grid
       run: cargo test --release --no-fail-fast --package=grid
       timeout-minutes: 5
@@ -100,10 +118,9 @@ jobs:
       run: cargo test --release --no-fail-fast --package=day18
       timeout-minutes: 5
 
-# needs to much memory
-#    - name: Run tests day19
-#      run: cargo test --release --no-fail-fast --package=day19
-#      timeout-minutes: 5
+    - name: Run tests day19
+      run: cargo test --release --no-fail-fast --package=day19
+      timeout-minutes: 5
 
     - name: Run tests day20
       run: cargo test --release --no-fail-fast --package=day20
