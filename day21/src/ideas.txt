@@ -1,0 +1,51 @@
+X= ((12 * (18 + Human)) - 541)
+
+
+___________________________________________
+X= ((12 * (18 + Human)) - 541)
+=> (X + 541) = 12 * (18 + Human)
+=> (X + 541)/12= (18 + Human)
+=> ((X + 541)/12) - 18 = Human
+
+X = (OP1 op OP2)
+(assume OP1 depends on HUMAN)
+=> (X invert(op) eval(OP2)) = OP1
+
+X = (OP1 op OP2)
+(assume OP2 depends on HUMAN)
+=> (eval(OP1) op X) = OP2
+
+
+X = (OP1 - (18 + Human))
+eval(OP1) - X = (18 + Human)
+
+
+
+X'= 18 + Human
+=> Human = 18 - X'
+
+X= (12 * X')
+
+X''=12 * X'
+=> X'=12 / X''
+
+
+---------------------------------------
+
+150 = ((4 + (2 * (Human - 3))) / 4)
+=>
+150 * 4 = (4 + (2 * (Human - 3)))
+600 = (4 + (2 * (Human - 3)))
+=>
+600 - 4 = (2 * (Human - 3))
+596 = (2 * (Human - 3))
+=> 
+596 / 2 = (Human - 3)
+298 = (Human - 3)
+=>
+298 + 3 = Human
+301 = Human
+
+
+
+
