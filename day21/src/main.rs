@@ -51,16 +51,24 @@ pub fn solve_part2(file_name: &str) -> isize {
         MonkeyRule::Human(HUMAN_MONKEY.to_string()),
     );
 
-    let root_monkey = &monkey_map.get(ROOT_MONKEY).unwrap();
-    let (monkey1, monkey2) = root_monkey
+    let (monkey1, monkey2) = monkey_map
+        .get(ROOT_MONKEY)
+        .unwrap()
         .get_used_monkeys_iter(&monkey_map)
         .collect_tuple()
         .unwrap();
-    // only rule1 depends on human
+    // only rule1 depends on human in the data
     assert_eq!(monkey1.count_human_usage(&monkey_map), 1);
     assert_eq!(monkey2.count_human_usage(&monkey_map), 0);
 
-    monkey1.solve(monkey2.eval(&monkey_map), &monkey_map)
+    let monkey2_value = monkey2.eval(&monkey_map);
+    let human_value = monkey1.solve(monkey2_value, &monkey_map);
+    if cfg!(not(test)) {
+        let mut monkey_map = monkey_map.clone();
+        monkey_map.insert(HUMAN_MONKEY.to_string(), MonkeyRule::Number(human_value));
+        assert_eq!(monkey2_value, monkey1.eval(&monkey_map));
+    }
+    human_value
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
