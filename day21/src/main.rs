@@ -9,8 +9,14 @@
     clippy::must_use_candidate
 )]
 
-use std::{collections::HashMap, fmt::Display, str::FromStr};
+use std::{
+    cell::Cell,
+    collections::HashMap,
+    fmt::{format, Display},
+    str::FromStr,
+};
 
+use derive_more::{IsVariant, Unwrap};
 use fxhash::FxHashMap;
 use itertools::Itertools;
 
@@ -18,159 +24,9 @@ use itertools::Itertools;
 /// The main function prints out the results for part1 and part2
 /// AOC
 fn main() {
-    //utils::with_measure("Part 1", || solve_part1("day21/input.txt"));
+    utils::with_measure("Part 1", || solve_part1("day21/input.txt"));
     utils::with_measure("Part 2", || solve_part2("day21/input.txt"));
 }
-
-////////////////////////////////////////////////////////////////////////////////////
-
-pub fn solve_part1(file_name: &str) -> isize {
-    let monkey_map = parse_part1(file_name);
-    println!("{:?}", monkey_map);
-
-    let root_monkey = monkey_map.get(ROOT_MONKEY).unwrap();
-    root_monkey.apply(&monkey_map)
-}
-
-pub fn solve_part2(file_name: &str) -> isize {
-    let monkey_map = parse_part1(file_name);
-    println!("{:?}", monkey_map);
-
-    let (op1, op2) = monkey_map
-        .get(ROOT_MONKEY)
-        .unwrap()
-        .operation
-        .get_used_monkey_names()
-        .map(|monkey_name| monkey_map.get(monkey_name).unwrap())
-        .collect_tuple()
-        .unwrap();
-    // only op1 depend on human
-    assert_eq!(
-        op1.count_monkey_usage(&HUMAN_MONKEY.to_string(), &monkey_map),
-        1
-    );
-    assert_eq!(
-        op2.count_monkey_usage(&HUMAN_MONKEY.to_string(), &monkey_map),
-        0
-    );
-
-    // so we can evalualte op2
-    let op2_part2 = op2.convert_to_part2(&monkey_map);
-    println!("op2_part2: {}", op2_part2);
-    let op2_value = op2_part2.eval();
-    println!("op2_value: {}", op2_value);
-
-    // convert to OperationPart2
-    let op1_part2 = op1.convert_to_part2(&monkey_map);
-    println!("op1_part2: {}", op1_part2);
-
-    // Ie op1 needs to eval to op2_value
-    let x = op1_part2.solve(op2_value);
-    println!("{}", x);
-    // ((4 + (2 * (600 - 3))) / 4) =
-
-    x
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Clone)]
-enum OperationPart2 {
-    Number(isize),
-    Human,
-    Add(Box<OperationPart2>, Box<OperationPart2>),
-    Sub(Box<OperationPart2>, Box<OperationPart2>),
-    Mul(Box<OperationPart2>, Box<OperationPart2>),
-    Div(Box<OperationPart2>, Box<OperationPart2>),
-}
-impl OperationPart2 {
-    fn eval(&self) -> isize {
-        match self {
-            OperationPart2::Number(n) => *n,
-            OperationPart2::Add(op1, op2) => op1.eval() + op2.eval(),
-            OperationPart2::Sub(op1, op2) => op1.eval() - op2.eval(),
-            OperationPart2::Mul(op1, op2) => op1.eval() * op2.eval(),
-            OperationPart2::Div(op1, op2) => op1.eval() / op2.eval(),
-            OperationPart2::Human => panic!("Can't eval human"),
-        }
-    }
-
-    fn depends_on_human(&self) -> bool {
-        match self {
-            OperationPart2::Number(_) => false,
-            OperationPart2::Human => true,
-            OperationPart2::Add(op1, op2) => op1.depends_on_human() || op2.depends_on_human(),
-            OperationPart2::Sub(op1, op2) => op1.depends_on_human() || op2.depends_on_human(),
-            OperationPart2::Mul(op1, op2) => op1.depends_on_human() || op2.depends_on_human(),
-            OperationPart2::Div(op1, op2) => op1.depends_on_human() || op2.depends_on_human(),
-        }
-    }
-
-    pub fn solve(&self, value: isize) -> isize {
-        /*
-            X = (OP1 op OP2)
-            (if OP1 depends on HUMAN)
-            => (X invert(op) eval(OP2)) = OP1
-
-            X = (OP1 op OP2)
-            (if OP2 depends on HUMAN)
-            => (eval(OP1) invert(op) X) = OP2
-
-            X= HUMAN?!
-        */
-        match self {
-            OperationPart2::Number(n) => *n,
-            OperationPart2::Human => value,
-            OperationPart2::Add(op1, op2) => {
-                if op1.depends_on_human() {
-                    op1.solve(value - op2.eval())
-                } else {
-                    assert!(!op1.depends_on_human() && op2.depends_on_human());
-                    op2.solve(value - op1.eval())
-                }
-            }
-            OperationPart2::Sub(op1, op2) => {
-                if op1.depends_on_human() {
-                    op1.solve(value + op2.eval())
-                } else {
-                    assert!(!op1.depends_on_human() && op2.depends_on_human());
-                    op2.solve(op1.eval() - value)
-                }
-            }
-            OperationPart2::Mul(op1, op2) => {
-                if op1.depends_on_human() {
-                    op1.solve(value / op2.eval())
-                } else {
-                    assert!(!op1.depends_on_human() && op2.depends_on_human());
-                    op2.solve(value / op1.eval())
-                }
-            }
-            OperationPart2::Div(op1, op2) => {
-                if op1.depends_on_human() {
-                    op1.solve(value * op2.eval())
-                } else {
-                    assert!(!op1.depends_on_human() && op2.depends_on_human());
-                    op2.solve(op1.eval() / value)
-                }
-            }
-        }
-    }
-}
-
-impl Display for OperationPart2 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OperationPart2::Number(n) => write!(f, "{}", n),
-            OperationPart2::Human => write!(f, "Human"),
-            OperationPart2::Add(op1, op2) => write!(f, "({} + {})", op1, op2),
-            OperationPart2::Sub(op1, op2) => write!(f, "({} - {})", op1, op2),
-            OperationPart2::Mul(op1, op2) => write!(f, "({} * {})", op1, op2),
-            OperationPart2::Div(op1, op2) => write!(f, "({} / {})", op1, op2),
-        }
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////
 
@@ -178,199 +34,217 @@ type MonkeyIndex = String;
 const ROOT_MONKEY: &str = "root";
 const HUMAN_MONKEY: &str = "humn";
 
-#[derive(Debug, Clone)]
-struct MonkeyPart1 {
-    name: MonkeyIndex,
-    operation: OperationPart1,
+pub fn solve_part1(file_name: &str) -> isize {
+    parse(file_name)
+        .get(ROOT_MONKEY)
+        .unwrap()
+        .eval(&parse(file_name))
 }
 
-impl MonkeyPart1 {
-    fn apply(&self, monkey_map: &FxHashMap<MonkeyIndex, MonkeyPart1>) -> isize {
-        self.operation.eval(monkey_map)
+pub fn solve_part2(file_name: &str) -> isize {
+    let mut monkey_map = parse(file_name);
+    //println!("{:?}", monkey_map);
+
+    // Replace human entry
+    monkey_map.insert(
+        HUMAN_MONKEY.to_string(),
+        MonkeyRule::Human(HUMAN_MONKEY.to_string()),
+    );
+
+    let root_monkey = &monkey_map.get(ROOT_MONKEY).unwrap();
+    let (monkey1, monkey2) = root_monkey
+        .get_used_monkeys_iter(&monkey_map)
+        .collect_tuple()
+        .unwrap();
+    // only rule1 depends on human
+    assert_eq!(monkey1.count_human_usage(&monkey_map), 1);
+    assert_eq!(monkey2.count_human_usage(&monkey_map), 0);
+
+    monkey1.solve(monkey2.eval(&monkey_map), &monkey_map)
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Clone)]
+enum Operation {
+    Add,
+    Sub,
+    Mul,
+    Div,
+}
+
+impl Operation {
+    fn op_name(&self) -> String {
+        match self {
+            Operation::Add => "+".to_string(),
+            Operation::Sub => "-".to_string(),
+            Operation::Mul => "*".to_string(),
+            Operation::Div => "/".to_string(),
+        }
     }
 
-    fn count_monkey_usage(
-        &self,
-        monkey_name: &MonkeyIndex,
-        monkey_map: &FxHashMap<MonkeyIndex, MonkeyPart1>,
-    ) -> isize {
-        if monkey_name == &self.name {
+    fn eval(&self, value1: isize, value2: isize) -> isize {
+        match self {
+            Operation::Add => value1 + value2,
+            Operation::Sub => value1 - value2,
+            Operation::Mul => value1 * value2,
+            Operation::Div => value1 / value2,
+        }
+    }
+
+    fn eval_inverse_right(&self, value1: isize, value2: isize) -> isize {
+        match self {
+            Operation::Add => value1 - value2,
+            Operation::Sub => value1 + value2,
+            Operation::Mul => value1 / value2,
+            Operation::Div => value1 * value2,
+        }
+    }
+
+    fn eval_inverse_left(&self, value1: isize, value2: isize) -> isize {
+        match self {
+            Operation::Add => value1 - value2,
+            Operation::Sub => value2 - value1,
+            Operation::Mul => value1 / value2,
+            Operation::Div => value2 / value1,
+        }
+    }
+}
+
+#[derive(Debug, Clone, IsVariant, Unwrap)]
+enum MonkeyRule {
+    Number(isize),
+    Monkey(MonkeyIndex),
+    Human(MonkeyIndex),
+    Operation(Operation, Box<MonkeyRule>, Box<MonkeyRule>),
+}
+
+impl MonkeyRule {
+    fn count_human_usage(&self, monkey_map: &FxHashMap<MonkeyIndex, MonkeyRule>) -> isize {
+        if self.is_human() {
             return 1;
         }
-        self.operation
-            .get_used_monkey_names()
-            .map(|monkey_index| {
-                monkey_map
-                    .get(monkey_index)
-                    .unwrap()
-                    .count_monkey_usage(monkey_name, monkey_map)
-            })
+        self.get_used_monkeys_iter(monkey_map)
+            .map(|monkey| monkey.count_human_usage(monkey_map))
             .sum()
     }
 
-    fn eval(&self, monkey_map: &FxHashMap<MonkeyIndex, MonkeyPart1>) -> isize {
-        self.operation.eval(monkey_map)
-    }
-
-    pub fn convert_to_part2(
+    fn get_used_monkeys_iter<'a>(
         &self,
-        monkey_map: &FxHashMap<MonkeyIndex, MonkeyPart1>,
-    ) -> OperationPart2 {
-        let convert_to_part2_inner = |monkey_name: &MonkeyIndex| -> Box<OperationPart2> {
-            let monkey = monkey_map.get(monkey_name).unwrap();
-            Box::new(monkey.convert_to_part2(monkey_map))
-        };
-
-        if self.name == HUMAN_MONKEY.to_string() {
-            return OperationPart2::Human;
+        monkey_map: &'a FxHashMap<MonkeyIndex, MonkeyRule>,
+    ) -> impl Iterator<Item = &'a MonkeyRule> {
+        fn get_used_monkey_names(rule: &MonkeyRule) -> impl Iterator<Item = &MonkeyIndex> {
+            match rule {
+                MonkeyRule::Number(_) => vec![].into_iter(),
+                MonkeyRule::Monkey(monkey_name) => vec![monkey_name].into_iter(),
+                MonkeyRule::Human(monkey_name) => vec![monkey_name].into_iter(),
+                MonkeyRule::Operation(_, rule1, rule2) => {
+                    let x = get_used_monkey_names(&rule1)
+                        .chain(get_used_monkey_names(&rule2))
+                        .collect_vec();
+                    x.into_iter()
+                }
+            }
         }
+
+        get_used_monkey_names(self)
+            .map(|monkey_name| monkey_map.get(monkey_name).unwrap())
+            .collect_vec()
+            .into_iter()
+    }
+
+    fn eval(&self, monkey_map: &FxHashMap<MonkeyIndex, MonkeyRule>) -> isize {
         match self {
-            MonkeyPart1 {
-                name: _,
-                operation: OperationPart1::Number(n),
-            } => OperationPart2::Number(*n),
-            MonkeyPart1 {
-                name: _,
-                operation: OperationPart1::Add(monkey1, monkey2),
-            } => OperationPart2::Add(
-                convert_to_part2_inner(monkey1),
-                convert_to_part2_inner(monkey2),
-            ),
-            MonkeyPart1 {
-                name: _,
-                operation: OperationPart1::Sub(monkey1, monkey2),
-            } => OperationPart2::Sub(
-                convert_to_part2_inner(monkey1),
-                convert_to_part2_inner(monkey2),
-            ),
-            MonkeyPart1 {
-                name: _,
-                operation: OperationPart1::Mul(monkey1, monkey2),
-            } => OperationPart2::Mul(
-                convert_to_part2_inner(monkey1),
-                convert_to_part2_inner(monkey2),
-            ),
-            MonkeyPart1 {
-                name: _,
-                operation: OperationPart1::Div(monkey1, monkey2),
-            } => OperationPart2::Div(
-                convert_to_part2_inner(monkey1),
-                convert_to_part2_inner(monkey2),
-            ),
+            MonkeyRule::Number(n) => *n,
+            MonkeyRule::Operation(op, rule1, rule2) => {
+                op.eval(rule1.eval(monkey_map), rule2.eval(monkey_map))
+            }
+            MonkeyRule::Monkey(monkey_name) => {
+                monkey_map.get(monkey_name).unwrap().eval(monkey_map)
+            }
+            MonkeyRule::Human(_) => panic!("Can't eval human, need to solve first"),
         }
     }
-}
 
-#[derive(Debug, Clone)]
-enum OperationPart1 {
-    Number(isize),
-    Add(MonkeyIndex, MonkeyIndex),
-    Sub(MonkeyIndex, MonkeyIndex),
-    Mul(MonkeyIndex, MonkeyIndex),
-    Div(MonkeyIndex, MonkeyIndex),
-}
-impl OperationPart1 {
-    fn eval(&self, monkey_map: &FxHashMap<MonkeyIndex, MonkeyPart1>) -> isize {
+    fn depends_on_human(&self, monkey_map: &FxHashMap<MonkeyIndex, MonkeyRule>) -> bool {
         match self {
-            OperationPart1::Number(n) => *n,
-            OperationPart1::Add(monkey1, monkey2) => {
-                let monkey1 = monkey_map.get(monkey1).unwrap();
-                let monkey2 = monkey_map.get(monkey2).unwrap();
-                monkey1.apply(monkey_map) + monkey2.apply(monkey_map)
-            }
-            OperationPart1::Sub(monkey1, monkey2) => {
-                let monkey1 = monkey_map.get(monkey1).unwrap();
-                let monkey2 = monkey_map.get(monkey2).unwrap();
-                monkey1.apply(monkey_map) - monkey2.apply(monkey_map)
-            }
-            OperationPart1::Mul(monkey1, monkey2) => {
-                let monkey1 = monkey_map.get(monkey1).unwrap();
-                let monkey2 = monkey_map.get(monkey2).unwrap();
-                monkey1.apply(monkey_map) * monkey2.apply(monkey_map)
-            }
-            OperationPart1::Div(monkey1, monkey2) => {
-                let monkey1 = monkey_map.get(monkey1).unwrap();
-                let monkey2 = monkey_map.get(monkey2).unwrap();
-                monkey1.apply(monkey_map) / monkey2.apply(monkey_map)
+            MonkeyRule::Number(_) => false,
+            MonkeyRule::Human(_) => true,
+            MonkeyRule::Monkey(monkey_name) => monkey_map
+                .get(monkey_name)
+                .unwrap()
+                .depends_on_human(monkey_map),
+            MonkeyRule::Operation(_, rule1, rule2) => {
+                rule1.depends_on_human(monkey_map) || rule2.depends_on_human(monkey_map)
             }
         }
     }
 
-    fn get_used_monkey_names(&self) -> impl Iterator<Item = &MonkeyIndex> {
+    pub fn solve(&self, value: isize, monkey_map: &FxHashMap<MonkeyIndex, MonkeyRule>) -> isize {
         match self {
-            OperationPart1::Number(_) => vec![].into_iter(),
-            OperationPart1::Add(monkey1, monkey2) => vec![monkey1, monkey2].into_iter(),
-            OperationPart1::Sub(monkey1, monkey2) => vec![monkey1, monkey2].into_iter(),
-            OperationPart1::Mul(monkey1, monkey2) => vec![monkey1, monkey2].into_iter(),
-            OperationPart1::Div(monkey1, monkey2) => vec![monkey1, monkey2].into_iter(),
-        }
-    }
-}
-
-impl Display for OperationPart1 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OperationPart1::Number(n) => write!(f, "{}", n),
-            OperationPart1::Add(op1, op2) => write!(f, "({} + {})", op1, op2),
-            OperationPart1::Sub(op1, op2) => write!(f, "({} - {})", op1, op2),
-            OperationPart1::Mul(op1, op2) => write!(f, "({} * {})", op1, op2),
-            OperationPart1::Div(op1, op2) => write!(f, "({} / {})", op1, op2),
-        }
-    }
-}
-
-impl FromStr for OperationPart1 {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.contains('+') {
-            let (monkey1, monkey2) = s.split_once(" + ").unwrap();
-            Ok(OperationPart1::Add(
-                monkey1.to_string(),
-                monkey2.to_string(),
-            ))
-        } else if s.contains('-') {
-            let (monkey1, monkey2) = s.split_once(" - ").unwrap();
-            Ok(OperationPart1::Sub(
-                monkey1.to_string(),
-                monkey2.to_string(),
-            ))
-        } else if s.contains('*') {
-            let (monkey1, monkey2) = s.split_once(" * ").unwrap();
-            Ok(OperationPart1::Mul(
-                monkey1.to_string(),
-                monkey2.to_string(),
-            ))
-        } else if s.contains('/') {
-            let (monkey1, monkey2) = s.split_once(" / ").unwrap();
-            Ok(OperationPart1::Div(
-                monkey1.to_string(),
-                monkey2.to_string(),
-            ))
-        } else {
-            Ok(OperationPart1::Number(s.parse().unwrap()))
+            MonkeyRule::Number(n) => *n,
+            MonkeyRule::Human(_) => value,
+            MonkeyRule::Monkey(monkey_name) => monkey_map
+                .get(monkey_name)
+                .unwrap()
+                .solve(value, monkey_map),
+            MonkeyRule::Operation(op, rule1, rule2) => {
+                if rule1.depends_on_human(monkey_map) {
+                    rule1.solve(
+                        op.eval_inverse_right(value, rule2.eval(monkey_map)),
+                        monkey_map,
+                    )
+                } else {
+                    assert!(
+                        !rule1.depends_on_human(monkey_map) && rule2.depends_on_human(monkey_map)
+                    );
+                    rule2.solve(
+                        op.eval_inverse_left(value, rule1.eval(monkey_map)),
+                        monkey_map,
+                    )
+                }
+            }
         }
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn parse_part1(
-    file_name: &str,
-) -> HashMap<String, MonkeyPart1, std::hash::BuildHasherDefault<fxhash::FxHasher>> {
-    let monkey_map: FxHashMap<MonkeyIndex, MonkeyPart1> = utils::file_to_lines(file_name)
+fn parse(file_name: &str) -> FxHashMap<String, MonkeyRule> {
+    utils::file_to_lines(file_name)
         .map(|line| {
             let (name, operation) = line.split_once(": ").unwrap();
-            (
-                name.to_string(),
-                MonkeyPart1 {
-                    name: name.to_string(),
-                    operation: OperationPart1::from_str(operation).unwrap(),
-                },
-            )
+            (name.to_string(), MonkeyRule::from_str(operation).unwrap())
         })
-        .collect();
-    monkey_map
+        .collect()
+}
+
+impl FromStr for MonkeyRule {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        fn _create_monkey(monkey: &str) -> Box<MonkeyRule> {
+            Box::new(MonkeyRule::Monkey(monkey.trim().to_string()))
+        }
+
+        [
+            Operation::Add,
+            Operation::Sub,
+            Operation::Mul,
+            Operation::Div,
+        ]
+        .into_iter()
+        .find(|op| s.contains(&op.op_name()))
+        .map(|op| {
+            let (monkey1, monkey2) = s.split_once(&op.op_name()).unwrap();
+            Ok(MonkeyRule::Operation(
+                op,
+                _create_monkey(monkey1),
+                _create_monkey(monkey2),
+            ))
+        })
+        .unwrap_or_else(|| Ok(MonkeyRule::Number(s.parse().unwrap())))
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -399,7 +273,7 @@ mod tests {
 
     #[test]
     fn verify2() {
-        assert_eq!(solve_part2("input.txt"), 42);
+        assert_eq!(solve_part2("input.txt"), 3617613952378);
     }
 
     #[bench]

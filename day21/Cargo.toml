@@ -9,6 +9,7 @@ edition = "2021"
 grid = { path = "../grid/" }
 utils = { path = "../utils" }
 itertools = "0.10.1"       # Extra iterator adaptors, iterator methods, free functions, and macros.
+derive_more = "0.99"
 
 fxhash = "0.2"
 
