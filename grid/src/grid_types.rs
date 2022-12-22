@@ -57,7 +57,6 @@ impl<T: Clone + Ord + Eq> Coor2DMut<T> {
         [self.x.clone(), self.y.clone()]
     }
 
-
     /// min
     pub fn min(&self, other: &Self) -> Self {
         Self::new(
@@ -109,15 +108,41 @@ pub enum Topology {
 
 /// All eight directions (Orthogonal+Diagonal)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum Direction {
+pub enum Direction {
+    /// North
     North = 0,
+    /// NorthEast
     NorthEast = 1,
+    /// East
     East = 2,
+    /// SouthEast
     SouthEast = 3,
+    /// South
     South = 4,
+    /// SouthWest
     SouthWest = 5,
+    /// West
     West = 6,
+    /// NorthWest
     NorthWest = 7,
+}
+
+impl Direction {
+    /// Returns the direction rotated by the given number of degrees
+    pub fn rotate(&self, rotation: isize) -> Self {
+        let new_dir = (*self as isize + rotation * 8 / 360).rem_euclid(8);
+        match new_dir {
+            0 => Direction::North,
+            1 => Direction::NorthEast,
+            2 => Direction::East,
+            3 => Direction::SouthEast,
+            4 => Direction::South,
+            5 => Direction::SouthWest,
+            6 => Direction::West,
+            7 => Direction::NorthWest,
+            _ => unreachable!(),
+        }
+    }
 }
 
 /// Neighborhoods around a point. They do not contain the point itself

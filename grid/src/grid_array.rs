@@ -1,10 +1,12 @@
 //! Grid based on a vector
 
+use std::fmt::Display;
 use std::mem::{replace, swap};
 
 use itertools::Itertools;
 
-use crate::grid_iteration::{is_corner, is_edge};
+use crate::grid_iteration::{adjacent_cell, is_corner, is_edge};
+use crate::grid_types::Direction;
 
 use super::grid_iteration;
 use super::grid_types::{Coor2D, Coor2DIndex, Neighborhood, Topology};
@@ -30,6 +32,18 @@ pub struct GridArray<T: Default + Clone + std::fmt::Display> {
 impl<T: Default + Clone + std::fmt::Display> GridArrayBuilder<T> {
     fn create_data_vec(&self) -> Vec<T> {
         vec![T::default(); self.width.unwrap() * self.height.unwrap()]
+    }
+}
+
+impl<T: Default + Clone + std::fmt::Display> Display for GridArray<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for y in 0..self.height {
+            for x in 0..self.width {
+                write!(f, "{}", self.get_unchecked(x, y))?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
     }
 }
 
@@ -113,7 +127,14 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
     }
 
     fn index_to_vec_index(&self, x: usize, y: usize) -> usize {
-        assert!(self.check_index(x, y));
+        debug_assert!(
+            self.check_index(x, y),
+            "x={} y={} width={} height={}",
+            x,
+            y,
+            self.width,
+            self.height
+        );
         GridArray::<T>::_index_to_vec_index(x, y, self.width)
     }
 
@@ -248,26 +269,21 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
         self.map_indexes_to_cells(self.neighborhood_cell_indexes(x, y))
     }
 
-    /* The tests showed that this code isn#t stable
-    pub fn all_cells_mut(
-        &mut self,
-    ) -> impl Iterator<Item = (CellIndexCoorType, CellIndexCoorType, &mut T)> {
-        self.all_indexes()
-            .zip(self._data.iter_mut())
-            .map(|((x, y), cell)| (x, y, cell))
+    /// return adjacent cell in direction
+    pub fn adjacent_cell(
+        &self,
+        x: Coor2DIndex,
+        y: Coor2DIndex,
+        direction: Direction,
+    ) -> Option<Coor2D> {
+        adjacent_cell(
+            self.topology,
+            self.width,
+            self.height,
+            Coor2D::new(x, y),
+            direction,
+        )
     }
-    pub fn neighborhood_cells_mut(
-        &mut self,
-        x: CellIndexCoorType,
-        y: CellIndexCoorType,
-    ) -> impl Iterator<Item = (CellIndexCoorType, CellIndexCoorType, &mut T)> {
-        // looping over the neighbor_cells and calling get_mut didn't work.
-        let neighbor_cells: HashSet<CellIndexType> =
-            HashSet::from_iter(self.neighborhood_cell_indexes(x, y));
-        self.all_cells_mut()
-            .filter(move |(x, y, _)| neighbor_cells.contains(&(*x, *y)))
-    }
-    */
 
     /// Print grid
     pub fn print(&self, add_stars: bool) {

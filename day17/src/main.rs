@@ -9,10 +9,9 @@
     clippy::must_use_candidate
 )]
 
-mod rock;
 mod floor;
+mod rock;
 use floor::*;
-
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2

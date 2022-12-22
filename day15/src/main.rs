@@ -9,7 +9,7 @@
     clippy::must_use_candidate
 )]
 
-use std::collections::{HashSet};
+use std::collections::HashSet;
 
 use grid::{
     grid_hashmap::{GridHashMap, GridHashMapBuilder},
