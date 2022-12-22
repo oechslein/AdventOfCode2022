@@ -7,6 +7,10 @@
     clippy::many_single_char_names,
     clippy::must_use_candidate
 )]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::unreadable_literal)]
+
 
 #[derive(Debug, Clone)]
 pub struct RockStruct<const WIDTH: usize, const SIZE: usize> {

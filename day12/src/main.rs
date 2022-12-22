@@ -1,6 +1,6 @@
-#![allow(unused_imports)]
-#![allow(dead_code)]
-#![allow(unused_must_use)]
+//#![allow(unused_imports)]
+//#![allow(dead_code)]
+//#![allow(unused_must_use)]
 #![feature(test)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
@@ -8,10 +8,12 @@
     clippy::many_single_char_names,
     clippy::must_use_candidate
 )]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::unreadable_literal)]
 
-use grid::grid_array::{GridArray, GridArrayBuilder};
+use grid::grid_array::GridArray;
 use grid::grid_types::{Coor2D, Neighborhood, Topology};
-use itertools::Itertools;
 
 use pathfinding::prelude::dijkstra;
 
@@ -58,21 +60,6 @@ pub fn solve_part2(file_name: &str) -> usize {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-
-fn get_lowest_steps(
-    grid: &GridArray<char>,
-    start_pos: Coor2D,
-    weight_fn: fn((Coor2D, &char), (Coor2D, &char)) -> Option<(Coor2D, usize)>,
-    is_goal_fn: impl Fn(&Coor2D) -> bool,
-) -> Option<usize> {
-    let result = dijkstra(
-        &start_pos,
-        |coor| get_successor(&grid, &coor, weight_fn),
-        |coor| is_goal_fn(coor),
-    );
-    //println!("{:?}", result);
-    result.map(|result| result.1)
-}
 
 fn get_successor<'a>(
     grid: &'a GridArray<char>,
@@ -133,7 +120,7 @@ fn parse_grid(file_name: &str) -> GridArray<char> {
     let grid = GridArray::from_newline_separated_string(
         Topology::Bounded,
         Neighborhood::Orthogonal,
-        input,
+        &input,
     );
     //grid.print();
     grid

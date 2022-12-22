@@ -7,6 +7,9 @@
     clippy::many_single_char_names,
     clippy::must_use_candidate
 )]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::unreadable_literal)]
 
 use std::collections::HashMap;
 
@@ -56,7 +59,7 @@ impl Floor {
 
     pub fn remove(&mut self, x: usize, y: usize) {
         self._grid
-            .remove(Coor2DMut::<isize>::new(x as isize, y as isize));
+            .remove(&Coor2DMut::<isize>::new(x as isize, y as isize));
     }
 
     pub fn next_rock(&mut self, y_min: usize) -> RockEnum {

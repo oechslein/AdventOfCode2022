@@ -8,6 +8,8 @@
     clippy::many_single_char_names,
     clippy::must_use_candidate
 )]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
 
 use itertools::Itertools;
 
@@ -39,9 +41,7 @@ pub fn solve_part2(file_name: &str) -> usize {
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn parse_input<'a>(
-    file_name: &'a str,
-) -> impl Iterator<Item = ((usize, usize), (usize, usize))> + 'a {
+fn parse_input(file_name: &str) -> impl Iterator<Item = ((usize, usize), (usize, usize))> + '_ {
     utils::file_to_string(file_name)
         .replace("\r\n", "\n")
         .split('\n')

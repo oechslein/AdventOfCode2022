@@ -6,7 +6,9 @@
     clippy::many_single_char_names,
     clippy::must_use_candidate
 )]
-#![forbid(missing_docs)]
+#![deny(missing_docs)]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
 
 use std::cmp::Reverse;
 use std::fmt::Debug;
@@ -21,7 +23,7 @@ use std::time::Instant;
 
 /// debug println x
 pub fn printlnit<T: Debug>(x: &T) {
-    println!("{:?}", x);
+    println!("{x:?}");
 }
 
 /// Allows cargo run to be called in dayXY and in root folder
@@ -73,7 +75,7 @@ pub fn unreverse<T>(reversed_item: Reverse<T>) -> T {
 }
 
 /// Splits given String split into chunks separated by empty lines
-pub fn split_by_empty_lines<'a, T>(contents: &'a str) -> impl Iterator<Item = T> + 'a
+pub fn split_by_empty_lines<T>(contents: &str) -> impl Iterator<Item = T> + '_
 where
     T: std::str::FromStr,
     <T>::Err: Debug,
@@ -82,7 +84,7 @@ where
 }
 
 /// Splits given String split into chunks separated by empty lines
-pub fn split_by_newline<'a, T>(contents: &'a str) -> impl Iterator<Item = T> + 'a
+pub fn split_by_newline<T>(contents: &str) -> impl Iterator<Item = T> + '_
 where
     T: std::str::FromStr,
     <T>::Err: Debug,
@@ -91,14 +93,14 @@ where
 }
 
 /// Splits given String, trim each lines, filters empty lines and parse each line into wished type
-pub fn parse_input_items<T>(contents: String) -> Vec<T>
+pub fn parse_input_items<T>(contents: &str) -> Vec<T>
 where
     T: std::str::FromStr,
     <T>::Err: Debug,
 {
     contents
         .split('\n')
-        .map(|s| s.trim())
+        .map(str::trim)
         .filter(|s| !s.is_empty())
         .map(|n| n.parse::<T>().unwrap())
         .collect()

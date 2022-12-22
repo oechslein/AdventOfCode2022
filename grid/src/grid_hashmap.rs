@@ -57,12 +57,12 @@ where
     }
 
     /// clear element on x, y and return old element
-    pub fn remove(&mut self, coor: Coor2DMut<isize>) -> Option<T> {
-        self.data.remove(&coor)
+    pub fn remove(&mut self, coor: &Coor2DMut<isize>) -> Option<T> {
+        self.data.remove(coor)
     }
 
     /// return all indexes
-    pub fn all_indexes<'a>(&'a self) -> impl Iterator<Item = Coor2DMut<isize>> + 'a {
+    pub fn all_indexes(&self) -> impl Iterator<Item = Coor2DMut<isize>> +'_ {
         self.data.keys().cloned()
     }
 
@@ -112,15 +112,15 @@ where
     }
 
     /// Print grid
-    pub fn print(&self, default: T) {
+    pub fn print(&self, default: &T) {
         let min_max = self.get_min_max();
         //println!("min: {:?}, max: {:?}", min_max.0, min_max.1);
-        for y in min_max.0.y..min_max.1.y as isize {
-            for x in min_max.0.x..min_max.1.x as isize {
+        for y in min_max.0.y..min_max.1.y {
+            for x in min_max.0.x..min_max.1.x {
                 if let Some(ch) = self.get(&Coor2DMut::new(x, y)) {
-                    print!("{}", ch);
+                    print!("{ch}");
                 } else {
-                    print!("{}", default);
+                    print!("{default}");
                 }
             }
             println!();

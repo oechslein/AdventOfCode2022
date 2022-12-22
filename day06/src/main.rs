@@ -1,6 +1,6 @@
-#![allow(unused_imports)]
-#![allow(dead_code)]
-#![allow(unused_must_use)]
+//#![allow(unused_imports)]
+//#![allow(dead_code)]
+//#![allow(unused_must_use)]
 #![feature(test)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
@@ -8,6 +8,8 @@
     clippy::many_single_char_names,
     clippy::must_use_candidate
 )]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
 
 use itertools::Itertools;
 
@@ -38,9 +40,7 @@ fn solve(file_name: &str, length_marker: usize) -> usize {
         .collect_vec()
         .windows(length_marker)
         .enumerate()
-        //.inspect(|x| println!("{:?}", x))
-        .filter(|(_, window)| window.iter().all_unique())
-        .next()
+        .find(|(_, window)| window.iter().all_unique())
         .unwrap()
         .0
         + length_marker

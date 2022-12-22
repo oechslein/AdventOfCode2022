@@ -7,6 +7,8 @@
     clippy::must_use_candidate
 )]
 #![deny(missing_docs)]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
 
 #[macro_use]
 extern crate derive_builder;

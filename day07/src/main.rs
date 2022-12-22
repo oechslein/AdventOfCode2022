@@ -8,6 +8,9 @@
     clippy::many_single_char_names,
     clippy::must_use_candidate
 )]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::unreadable_literal)]
 
 use std::{cell::RefCell, collections::VecDeque};
 
@@ -81,14 +84,14 @@ impl Display for FileSystemObject {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             FileSystemObject::Directory { name, children, .. } => {
-                writeln!(f, "Directory: '{}'", name)?;
+                writeln!(f, "Directory: '{name}'")?;
                 for child in children {
-                    write!(f, "  {}", child)?;
+                    write!(f, "  {child}")?;
                 }
                 Ok(())
             }
             FileSystemObject::File { name, size } => {
-                writeln!(f, "File: '{}' ({})", name, size)
+                writeln!(f, "File: '{name}' ({size})")
             }
         }
     }
@@ -152,7 +155,7 @@ impl FileSystemObject {
                 ..
             } => {
                 if cached_size.borrow().is_none() {
-                    cached_size.replace(Some(children.iter().map(|child| child.size()).sum()));
+                    cached_size.replace(Some(children.iter().map(FileSystemObject::size).sum()));
                 }
                 cached_size.borrow().unwrap()
             }
@@ -194,9 +197,7 @@ impl FileSystemObject {
                 let new_subfolder_name = line.get("$ cd ".len()..).unwrap();
                 let new_subfolder = FileSystemObject::new_folder(new_subfolder_name);
                 self.add_child(new_subfolder.parse_lines(lines));
-            } else if line.starts_with("dir ") {
-                // skip
-            } else if line.starts_with("$ ls") {
+            } else if line.starts_with("dir ") || line.starts_with("$ ls") {
                 // skip
             } else {
                 let (size_str, filename) = line.split_whitespace().collect_tuple().unwrap();

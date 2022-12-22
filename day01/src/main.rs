@@ -8,6 +8,10 @@
     clippy::many_single_char_names,
     clippy::must_use_candidate
 )]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::unreadable_literal)]
+
 
 //#![feature(generators, generator_trait)]
 //#![feature(drain_filter)]
@@ -23,7 +27,6 @@ use std::cmp::Reverse;
 //#use grid::grid_iteration::*;
 //use grid::grid_types::*;
 use itertools::Itertools;
-use utils;
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2
@@ -40,7 +43,7 @@ pub fn solve_part1(file_name: &str) -> usize {
     utils::file_to_string(file_name)
         .replace("\r\n", "\n")
         .split("\n\n")
-        .map(|chunks_str| sum_of_nums(chunks_str))
+        .map(sum_of_nums)
         .max()
         .unwrap()
 }
@@ -49,7 +52,7 @@ pub fn solve_part2(file_name: &str) -> usize {
     utils::file_to_string(file_name)
         .replace("\r\n", "\n")
         .split("\n\n")
-        .map(|chunks_str| sum_of_nums(chunks_str))
+        .map(sum_of_nums)
         .map(Reverse) // we want the largest but we only have k_smallest
         .k_smallest(3)
         .map(utils::unreverse) // Since elements are Reverse(items) we have to take .0

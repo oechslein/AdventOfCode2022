@@ -11,7 +11,7 @@ use crate::grid_types::Direction;
 use super::grid_iteration;
 use super::grid_types::{Coor2D, Coor2DIndex, Neighborhood, Topology};
 
-/// GridArray
+/// `GridArray`
 #[allow(missing_docs)]
 #[derive(Builder, Clone, PartialEq, Debug)]
 pub struct GridArray<T: Default + Clone + std::fmt::Display> {
@@ -49,10 +49,11 @@ impl<T: Default + Clone + std::fmt::Display> Display for GridArray<T> {
 
 impl GridArray<char> {
     /// from newline separated string
+    /// #Panics panics if the string is not a rectangle
     pub fn from_newline_separated_string(
         topology: Topology,
         neighborhood: Neighborhood,
-        input: String,
+        input: &str,
     ) -> Self {
         let width = input
             .chars()
@@ -83,7 +84,7 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
         width: Coor2DIndex,
         data: Vec<T>,
     ) -> Self {
-        assert_eq!(
+        debug_assert_eq!(
             (data.len()) % width,
             0,
             "data.len()={} width={}",
@@ -101,7 +102,7 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
 
     /// from 2d vector
     pub fn from_2d_vec(topology: Topology, neighborhood: Neighborhood, data: Vec<Vec<T>>) -> Self {
-        assert!(data.len() > 0);
+        debug_assert!(!data.is_empty());
         GridArray {
             width: data[0].len(),
             height: data.len(),
@@ -138,36 +139,36 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
         GridArray::<T>::_index_to_vec_index(x, y, self.width)
     }
 
-    /// get_width
+    /// `get_width`
     pub fn get_width(&self) -> usize {
         self.width
     }
 
-    /// get_height
+    /// `get_height`
     pub fn get_height(&self) -> usize {
         self.height
     }
 
-    /// get_topology
+    /// `get_topology`
     pub fn get_topology(&self) -> Topology {
         self.topology
     }
 
-    /// get_neighborhood
+    /// `get_neighborhood`
     pub fn get_neighborhood(&self) -> Neighborhood {
         self.neighborhood
     }
 
-    /// is_edge
+    /// `is_edge`
     pub fn is_edge(&self, x: Coor2DIndex, y: Coor2DIndex) -> bool {
-        assert!(self.check_index(x, y));
-        is_edge(self.topology, self.width, self.height, Coor2D::new(x, y))
+        debug_assert!(self.check_index(x, y));
+        is_edge(self.topology, self.width, self.height, &Coor2D::new(x, y))
     }
 
-    /// is_corner
+    /// `is_corner`
     pub fn is_corner(&self, x: Coor2DIndex, y: Coor2DIndex) -> bool {
-        assert!(self.check_index(x, y));
-        is_corner(self.topology, self.width, self.height, Coor2D::new(x, y))
+        debug_assert!(self.check_index(x, y));
+        is_corner(self.topology, self.width, self.height, &Coor2D::new(x, y))
     }
 
     /// get reference to element on x, y
@@ -196,7 +197,7 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
 
     /// set new element on x, y and return old element
     pub fn set(&mut self, x: Coor2DIndex, y: Coor2DIndex, new_value: T) -> T {
-        assert!(self.check_index(x, y));
+        debug_assert!(self.check_index(x, y));
         self.set_unchecked(x, y, new_value)
     }
 
@@ -207,8 +208,8 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
 
     /// set new element on x, y based on vector
     pub fn set_from_vec(&mut self, new_values: &Vec<Vec<T>>) {
-        assert_eq!(new_values.len(), self.height);
-        assert_eq!(new_values[0].len(), self.width);
+        debug_assert_eq!(new_values.len(), self.height);
+        debug_assert_eq!(new_values[0].len(), self.width);
         for (y, row) in new_values.iter().enumerate() {
             for (x, cell) in row.iter().enumerate() {
                 self.set_unchecked(x, y, cell.clone());
@@ -243,7 +244,7 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
         it.map(|coor| {
             (
                 coor.clone(),
-                self.get_unchecked(coor.x.clone(), coor.y.clone()),
+                self.get_unchecked(coor.x, coor.y),
             )
         })
     }
@@ -376,44 +377,44 @@ mod tests {
     use super::*;
 
     fn build_common_array() -> GridArrayBuilder<isize> {
-        GridArrayBuilder::default().width(4).height(5).to_owned()
+        GridArrayBuilder::default().width(4).height(5).clone()
     }
 
     fn build_common_bounded_array() -> GridArrayBuilder<isize> {
-        build_common_array().topology(Topology::Bounded).to_owned()
+        build_common_array().topology(Topology::Bounded).clone()
     }
 
     fn build_common_torus_array() -> GridArrayBuilder<isize> {
-        build_common_array().topology(Topology::Torus).to_owned()
+        build_common_array().topology(Topology::Torus).clone()
     }
 
     fn populate_with_enumerated(a: &mut GridArray<isize>) {
         for (i, coor) in a.all_indexes().enumerate() {
-            a.set(coor.x, coor.y, i as isize);
+            a.set(coor.x, coor.y, i.try_into().unwrap());
         }
-        assert_eq!(a.get(0, 0), Some(&0));
+        debug_assert_eq!(a.get(0, 0), Some(&0));
     }
 
     fn standard_tests(a: &mut GridArray<isize>) {
-        assert_eq!(a.get(0, 0), Some(&0));
-        assert_eq!(a.get(10, 11), None);
+        debug_assert_eq!(a.get(0, 0), Some(&0));
+        debug_assert_eq!(a.get(10, 11), None);
 
-        assert_eq!(a.all_indexes().count(), a.width * a.height);
-        assert_eq!(a.all_indexes().dedup().count(), a.width * a.height);
-        assert_eq!(a.all_cells().count(), a.width * a.height);
+        debug_assert_eq!(a.all_indexes().count(), a.width * a.height);
+        debug_assert_eq!(a.all_indexes().dedup().count(), a.width * a.height);
+        debug_assert_eq!(a.all_cells().count(), a.width * a.height);
 
         a.set(3, 2, -42);
-        assert_eq!(a.get(3, 2), Some(&-42));
+        debug_assert_eq!(a.get(3, 2), Some(&-42));
 
         {
             let mut new_value = 42;
             swap(a.get_mut(2, 3).unwrap(), &mut new_value);
-            assert_eq!(a.get(2, 3), Some(&42));
+            debug_assert_eq!(a.get(2, 3), Some(&42));
             let (_, cell) = a
                 .all_cells()
                 .find(|(coor, _)| *coor == Coor2D::new(2, 3))
                 .unwrap();
-            assert_eq!(cell, &42);
+            debug_assert_eq!(cell, &42);
         }
 
         /* See above not stable
@@ -429,7 +430,7 @@ mod tests {
             let cell_value: isize = *cell;
             println!("{} , {} , {}", a.get(2, 3).unwrap(), cell_value, new_value);
             a.print();
-            assert_eq!(a.get(2, 3), Some(&-11));
+            debug_assert_eq!(a.get(2, 3), Some(&-11));
         }
         */
 
@@ -437,22 +438,22 @@ mod tests {
 
         //a.print();
         a.flip_horizontal();
-        assert_eq!(a.get(0, 0), Some(&15));
+        debug_assert_eq!(a.get(0, 0), Some(&15));
         //println!();
         //a.print();
         a.flip_vertical();
-        assert_eq!(a.get(0, 0), Some(&19));
+        debug_assert_eq!(a.get(0, 0), Some(&19));
         //println!();
 
         a.transpose();
-        assert_eq!(a.get(0, 0), Some(&19));
-        assert_eq!(a.get(a.width - 1, 0), Some(&15));
+        debug_assert_eq!(a.get(0, 0), Some(&19));
+        debug_assert_eq!(a.get(a.width - 1, 0), Some(&15));
 
         populate_with_enumerated(a);
         let mut new_a = a.clone();
         new_a.transpose();
         new_a.transpose();
-        assert_eq!(&new_a, a);
+        debug_assert_eq!(&new_a, a);
 
         check_rotate_cw(a);
         check_rotate_ccw(a);
@@ -461,34 +462,34 @@ mod tests {
     fn check_rotate_cw(a: &mut GridArray<isize>) {
         populate_with_enumerated(a);
         a.rotate_cw();
-        assert_eq!(a.get(0, 0), Some(&3));
-        assert_eq!(a.get(a.width - 1, a.height - 1), Some(&16));
+        debug_assert_eq!(a.get(0, 0), Some(&3));
+        debug_assert_eq!(a.get(a.width - 1, a.height - 1), Some(&16));
         populate_with_enumerated(a);
         let mut new_a = a.clone();
         new_a.rotate_cw();
         new_a.rotate_cw();
         new_a.rotate_cw();
         new_a.rotate_cw();
-        assert_eq!(&new_a, a);
+        debug_assert_eq!(&new_a, a);
     }
 
     fn check_rotate_ccw(a: &mut GridArray<isize>) {
         populate_with_enumerated(a);
         a.rotate_ccw();
-        assert_eq!(a.get(0, 0), Some(&15));
-        assert_eq!(a.get(a.width - 1, a.height - 1), Some(&4));
+        debug_assert_eq!(a.get(0, 0), Some(&15));
+        debug_assert_eq!(a.get(a.width - 1, a.height - 1), Some(&4));
         populate_with_enumerated(a);
         let mut new_a = a.clone();
         new_a.rotate_ccw();
         new_a.rotate_ccw();
         new_a.rotate_ccw();
         new_a.rotate_ccw();
-        assert_eq!(&new_a, a);
+        debug_assert_eq!(&new_a, a);
         new_a.rotate_cw();
         new_a.rotate_ccw();
         new_a.rotate_ccw();
         new_a.rotate_cw();
-        assert_eq!(&new_a, a);
+        debug_assert_eq!(&new_a, a);
     }
 
     #[test]
@@ -499,10 +500,10 @@ mod tests {
             .unwrap();
         standard_tests(&mut a);
 
-        assert_eq!(a.neighborhood_cell_indexes(1, 1).count(), 8);
+        debug_assert_eq!(a.neighborhood_cell_indexes(1, 1).count(), 8);
         for x in [0, a.width - 1] {
             for y in [0, a.height - 1] {
-                assert_eq!(a.neighborhood_cell_indexes(x, y).count(), 3);
+                debug_assert_eq!(a.neighborhood_cell_indexes(x, y).count(), 3);
             }
         }
     }
@@ -514,10 +515,10 @@ mod tests {
             .build()
             .unwrap();
         standard_tests(&mut a);
-        assert_eq!(a.neighborhood_cell_indexes(1, 1).count(), 4);
+        debug_assert_eq!(a.neighborhood_cell_indexes(1, 1).count(), 4);
         for x in [0, a.width - 1] {
             for y in [0, a.height - 1] {
-                assert_eq!(a.neighborhood_cell_indexes(x, y).count(), 2);
+                debug_assert_eq!(a.neighborhood_cell_indexes(x, y).count(), 2);
             }
         }
     }
@@ -530,10 +531,10 @@ mod tests {
             .unwrap();
         standard_tests(&mut a);
 
-        assert_eq!(a.neighborhood_cell_indexes(1, 1).count(), 8);
+        debug_assert_eq!(a.neighborhood_cell_indexes(1, 1).count(), 8);
         for x in [0, a.width - 1] {
             for y in [0, a.height - 1] {
-                assert_eq!(a.neighborhood_cell_indexes(x, y).count(), 8);
+                debug_assert_eq!(a.neighborhood_cell_indexes(x, y).count(), 8);
             }
         }
     }
@@ -546,10 +547,10 @@ mod tests {
             .unwrap();
         standard_tests(&mut a);
 
-        assert_eq!(a.neighborhood_cell_indexes(1, 1).count(), 4);
+        debug_assert_eq!(a.neighborhood_cell_indexes(1, 1).count(), 4);
         for x in [0, a.width - 1] {
             for y in [0, a.height - 1] {
-                assert_eq!(a.neighborhood_cell_indexes(x, y).count(), 4);
+                debug_assert_eq!(a.neighborhood_cell_indexes(x, y).count(), 4);
             }
         }
     }

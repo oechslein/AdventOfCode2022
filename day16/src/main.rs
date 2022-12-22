@@ -8,6 +8,8 @@
     clippy::many_single_char_names,
     clippy::must_use_candidate
 )]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
 
 use fxhash::FxHashMap;
 use rayon::prelude::*;

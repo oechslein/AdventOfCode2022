@@ -8,8 +8,12 @@
     clippy::many_single_char_names,
     clippy::must_use_candidate
 )]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
+#![allow(clippy::unreadable_literal)]
 
-use std::collections::HashSet;
+
+use std::{collections::HashSet, fmt::Display};
 
 use grid::{
     grid_hashmap::{GridHashMap, GridHashMapBuilder},
@@ -118,7 +122,7 @@ fn create_grid(input: &Vec<(Coor2DMut<isize>, Coor2DMut<isize>)>) -> GridHashMap
     grid
 }
 
-fn parse_sensor_beacon_list<T: Clone + Ord + Eq>(
+fn parse_sensor_beacon_list<T: Clone + Ord + Eq + Display>(
     file_name: &str,
 ) -> Vec<(Coor2DMut<T>, Coor2DMut<T>)>
 where

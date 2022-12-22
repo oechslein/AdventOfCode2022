@@ -1,11 +1,12 @@
 //! Types grids
 
+use std::fmt::Display;
+
 use derive_more::{Add, AddAssign, Constructor, Display, Sub, SubAssign};
 
 /// CellIndexCoorType
 pub type Coor2DIndex = usize;
 /// CellIndexType
-//pub type Coor = (CoorIndex, CoorIndex);
 pub type Coor2D = Coor2DMut<Coor2DIndex>;
 
 /// Coor
@@ -28,26 +29,27 @@ pub type Coor2D = Coor2DMut<Coor2DIndex>;
     Display,
 )]
 //#[into(owned, ref, ref_mut)]
-#[display(fmt = "({},{})", x, y)]
-pub struct Coor2DMut<T: Clone + Ord + Eq> {
+#[display(fmt = "({x},{y})")]
+pub struct Coor2DMut<T: Clone + Ord + Eq + Display> {
     /// x
     pub x: T,
     /// y
     pub y: T,
 }
 
-impl<T: Clone + Ord + Eq> From<(T, T)> for Coor2DMut<T> {
+impl<T: Clone + Ord + Eq + Display> From<(T, T)> for Coor2DMut<T> {
     fn from(t: (T, T)) -> Self {
         Coor2DMut { x: t.0, y: t.1 }
     }
 }
 
-impl<T: Clone + Ord + Eq> Coor2DMut<T> {
+impl<T: Clone + Ord + Eq + Display> Coor2DMut<T> {
     /// to tuples
     pub fn to_tuple(&self) -> (T, T) {
         (self.x.clone(), self.y.clone())
     }
     /// from tuples
+    #[must_use]
     pub fn from_tuple(t: (T, T)) -> Self {
         Self::new(t.0, t.1)
     }
@@ -58,6 +60,7 @@ impl<T: Clone + Ord + Eq> Coor2DMut<T> {
     }
 
     /// min
+    #[must_use]
     pub fn min(&self, other: &Self) -> Self {
         Self::new(
             self.x.clone().min(other.x.clone()),
@@ -66,6 +69,7 @@ impl<T: Clone + Ord + Eq> Coor2DMut<T> {
     }
 
     /// max
+    #[must_use]
     pub fn max(&self, other: &Self) -> Self {
         Self::new(
             self.x.clone().max(other.x.clone()),
@@ -129,6 +133,7 @@ pub enum Direction {
 
 impl Direction {
     /// Returns the direction rotated by the given number of degrees
+    #[must_use]
     pub fn rotate(&self, rotation: isize) -> Self {
         let new_dir = (*self as isize + rotation * 8 / 360).rem_euclid(8);
         match new_dir {

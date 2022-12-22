@@ -58,7 +58,12 @@ pub(crate) fn adjacent_cell(
 }
 
 /// Is a given point on an edge of a grid
-pub(crate) fn is_edge(t: Topology, width: Coor2DIndex, height: Coor2DIndex, index: Coor2D) -> bool {
+pub(crate) fn is_edge(
+    t: Topology,
+    width: Coor2DIndex,
+    height: Coor2DIndex,
+    index: &Coor2D,
+) -> bool {
     let (x, y) = (index.x, index.y);
     t == Topology::Bounded && (x == 0 || x + 1 == width || y == 0 || y + 1 == height)
 }
@@ -68,7 +73,7 @@ pub(crate) fn is_corner(
     t: Topology,
     width: Coor2DIndex,
     height: Coor2DIndex,
-    index: Coor2D,
+    index: &Coor2D,
 ) -> bool {
     let (x, y) = (index.x, index.y);
     t == Topology::Bounded && (x == 0 || x + 1 == width) && (y == 0 || y + 1 == height)
@@ -171,12 +176,12 @@ mod tests {
 
     #[test]
     fn edge() {
-        assert!(is_edge(Bounded, 3, 3, Coor2D::new(1, 0)));
-        assert!(is_edge(Bounded, 3, 3, Coor2D::new(0, 1)));
-        assert!(is_edge(Bounded, 3, 3, Coor2D::new(1, 2)));
-        assert!(is_edge(Bounded, 3, 3, Coor2D::new(2, 1)));
-        assert!(!is_edge(Bounded, 3, 3, Coor2D::new(1, 1)));
-        assert!(!is_edge(Torus, 3, 3, Coor2D::new(2, 1)));
+        assert!(is_edge(Bounded, 3, 3, &Coor2D::new(1, 0)));
+        assert!(is_edge(Bounded, 3, 3, &Coor2D::new(0, 1)));
+        assert!(is_edge(Bounded, 3, 3, &Coor2D::new(1, 2)));
+        assert!(is_edge(Bounded, 3, 3, &Coor2D::new(2, 1)));
+        assert!(!is_edge(Bounded, 3, 3, &Coor2D::new(1, 1)));
+        assert!(!is_edge(Torus, 3, 3, &Coor2D::new(2, 1)));
     }
 
     #[test]

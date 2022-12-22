@@ -8,6 +8,8 @@
     clippy::many_single_char_names,
     clippy::must_use_candidate
 )]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
 
 use std::{collections::HashSet, str::Chars};
 
@@ -27,7 +29,7 @@ pub fn solve_part1(file_name: &str) -> u32 {
     utils::file_to_string(file_name)
         .replace("\r\n", "\n")
         .split('\n')
-        .map(|line| split_into_half(line))
+        .map(split_into_half)
         .map(|(compartment1, compartment2)| {
             type_priority_iterators(vec![compartment1, compartment2])
         })
@@ -38,7 +40,7 @@ pub fn solve_part2(file_name: &str) -> u32 {
     utils::file_to_string(file_name)
         .replace("\r\n", "\n")
         .split('\n')
-        .map(|line| line.chars())
+        .map(str::chars)
         .tuples::<(_, _, _)>()
         .map(|(rucksack1, rucksack2, rucksack3)| {
             type_priority_iterators(vec![rucksack1, rucksack2, rucksack3])
@@ -59,11 +61,11 @@ fn intersect_many<T: Eq + std::hash::Hash + Copy>(
     iterators: Vec<impl Iterator<Item = T>>,
 ) -> impl Iterator<Item = T> {
     let mut x = iterators.into_iter();
-    let mut result: HashSet<_> = HashSet::from_iter(x.next().unwrap());
-    while let Some(next_vec) = x.next() {
-        let other = HashSet::from_iter(next_vec);
+    let mut result: HashSet<_> = x.next().unwrap().collect();
+    for next_vec in x {
+        let other = next_vec.collect();
         let intersection = result.intersection(&other);
-        result = HashSet::from_iter(intersection.copied());
+        result = intersection.copied().collect();
     }
     result.into_iter()
 }

@@ -8,6 +8,8 @@
     clippy::many_single_char_names,
     clippy::must_use_candidate
 )]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::doc_markdown)]
 
 use std::str::FromStr;
 
@@ -35,17 +37,16 @@ pub fn solve_part2(file_name: &str) -> usize {
     let input = utils::file_to_string(file_name).replace("\r\n", "\n");
     parse_input_part(&input)
         .map(Move::set_player_move)
-        .map(|x| Move::player_score(x))
+        .map(Move::player_score)
         .sum()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn parse_input_part<'a>(input: &'a String) -> impl Iterator<Item = Move> + 'a {
+fn parse_input_part(input: &str) -> impl Iterator<Item = Move> + '_ {
     input
         .split('\n')
         .filter_map(|line| Move::from_str(line).ok())
-        .into_iter()
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -60,7 +61,7 @@ impl FromStr for Move {
 
     fn from_str(line: &str) -> Result<Self, Self::Err> {
         if let Some((first, second)) = line.trim().split(' ').collect_tuple() {
-            println!("{:?} {:?}", first, second);
+            println!("{first:?} {second:?}");
             Ok(Move {
                 opponent_move: MoveEnum::from_str(first).unwrap(),
                 player_move: MoveEnum::from_str(second).unwrap(),
@@ -74,9 +75,9 @@ impl FromStr for Move {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum MoveEnum {
-    ROCK,
-    SCISSORS,
-    PAPER,
+    Rock,
+    Scissor,
+    Paper,
 }
 use MoveEnum::*;
 
@@ -86,11 +87,11 @@ impl FromStr for MoveEnum {
     fn from_str(x: &str) -> Result<Self, Self::Err> {
         let move_char = x.chars().next().unwrap();
         if move_char == 'A' || move_char == 'X' {
-            Ok(ROCK)
+            Ok(Rock)
         } else if move_char == 'B' || move_char == 'Y' {
-            Ok(PAPER)
+            Ok(Paper)
         } else if move_char == 'C' || move_char == 'Z' {
-            Ok(SCISSORS)
+            Ok(Scissor)
         } else {
             Err(x.to_string())
         }
@@ -99,9 +100,9 @@ impl FromStr for MoveEnum {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum RoundOutcome {
-    DRAW,
-    WIN,
-    LOSS,
+    Draw,
+    Win,
+    Loss,
 }
 
 use RoundOutcome::*;
@@ -112,11 +113,11 @@ impl FromStr for RoundOutcome {
     fn from_str(x: &str) -> Result<Self, Self::Err> {
         let move_char = x.chars().next().unwrap();
         if move_char == 'X' {
-            Ok(LOSS)
+            Ok(Loss)
         } else if move_char == 'Y' {
-            Ok(DRAW)
+            Ok(Draw)
         } else if move_char == 'Z' {
-            Ok(WIN)
+            Ok(Win)
         } else {
             Err(x.to_string())
         }
@@ -124,22 +125,22 @@ impl FromStr for RoundOutcome {
 }
 
 impl Move {
-    fn last_player_wins_p(&self) -> bool {
+    fn last_player_wins_p(self) -> bool {
         match self.player_move {
-            ROCK => self.opponent_move == SCISSORS,
-            SCISSORS => self.opponent_move == PAPER,
-            PAPER => self.opponent_move == ROCK,
+            Rock => self.opponent_move == Scissor,
+            Scissor => self.opponent_move == Paper,
+            Paper => self.opponent_move == Rock,
         }
     }
 
     fn set_round_outcome(mut self) -> Self {
         self.player_outcome = {
             if self.opponent_move == self.player_move {
-                DRAW
+                Draw
             } else if self.last_player_wins_p() {
-                WIN
+                Win
             } else {
-                LOSS
+                Loss
             }
         };
         self
@@ -147,13 +148,10 @@ impl Move {
 
     fn set_player_move(mut self) -> Self {
         self.player_move = match (self.player_outcome, self.opponent_move) {
-            (DRAW, _) => self.opponent_move,
-            (WIN, ROCK) => PAPER,
-            (WIN, SCISSORS) => ROCK,
-            (WIN, PAPER) => SCISSORS,
-            (LOSS, ROCK) => SCISSORS,
-            (LOSS, SCISSORS) => PAPER,
-            (LOSS, PAPER) => ROCK,
+            (Draw, _) => self.opponent_move,
+            (Loss, Rock) | (Win, Paper) => Scissor,
+            (Loss, Scissor) | (Win, Rock) => Paper,
+            (Loss, Paper) | (Win, Scissor) => Rock,
         };
         self
     }
@@ -162,21 +160,21 @@ impl Move {
         self.player_move.move_score() + self.outcome_score()
     }
 
-    fn outcome_score(&self) -> usize {
+    fn outcome_score(self) -> usize {
         match self.player_outcome {
-            LOSS => 0,
-            DRAW => 3,
-            WIN => 6,
+            Loss => 0,
+            Draw => 3,
+            Win => 6,
         }
     }
 }
 
 impl MoveEnum {
-    fn move_score(&self) -> usize {
+    fn move_score(self) -> usize {
         match self {
-            ROCK => 1,
-            PAPER => 2,
-            SCISSORS => 3,
+            Rock => 1,
+            Paper => 2,
+            Scissor => 3,
         }
     }
 }
