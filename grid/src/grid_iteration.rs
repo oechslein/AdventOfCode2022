@@ -103,7 +103,6 @@ pub(crate) fn neighborhood_cells(
         .filter_map(move |direction| adjacent_cell(t, width, height, index.clone(), direction))
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
