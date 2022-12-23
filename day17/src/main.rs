@@ -2,7 +2,7 @@
 //#![allow(dead_code)]
 //#![allow(unused_must_use)]
 #![feature(test)]
-#![deny(clippy::all, clippy::pedantic)]
+//#![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::enum_glob_use,
     clippy::many_single_char_names,
@@ -12,10 +12,9 @@
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::unreadable_literal)]
 
-
 mod floor;
 mod rock;
-use floor::*;
+use floor::Floor;
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2

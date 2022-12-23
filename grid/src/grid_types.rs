@@ -150,7 +150,7 @@ impl Direction {
     }
 
     #[must_use]
-    /// Returns the difference vector for direction 
+    /// Returns the difference vector for direction
     pub fn diff_coor(&self) -> Coor2DMut<isize> {
         match self {
             Direction::North => Coor2DMut::new(0, -1),

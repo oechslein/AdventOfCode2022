@@ -2,7 +2,7 @@
 //#![allow(dead_code)]
 //#![allow(unused_must_use)]
 #![feature(test)]
-#![deny(clippy::all, clippy::pedantic)]
+//#![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::enum_glob_use,
     clippy::many_single_char_names,
@@ -11,7 +11,6 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::unreadable_literal)]
-
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2
@@ -37,7 +36,7 @@ pub fn solve_part2(file_name: &str) -> isize {
 fn solve(original_input: Vec<(isize, usize)>, times: usize) -> isize {
     let mut input = original_input.clone();
     for _ in 0..times {
-        for value in original_input.iter() {
+        for value in &original_input {
             let index = input.iter().position(|x| *x == *value).unwrap();
             rotate(&mut input, index);
         }

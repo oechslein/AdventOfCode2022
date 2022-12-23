@@ -241,12 +241,7 @@ impl<T: Default + Clone + std::fmt::Display> GridArray<T> {
         &self,
         it: impl Iterator<Item = Coor2D>,
     ) -> impl Iterator<Item = (Coor2D, &T)> {
-        it.map(|coor| {
-            (
-                coor.clone(),
-                self.get_unchecked(coor.x, coor.y),
-            )
-        })
+        it.map(|coor| (coor.clone(), self.get_unchecked(coor.x, coor.y)))
     }
 
     // map_indexes_to_cells_mut not possible to implement (multiple borrows of self_data)

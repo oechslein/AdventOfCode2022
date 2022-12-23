@@ -2,7 +2,7 @@
 //#![allow(dead_code)]
 //#![allow(unused_must_use)]
 #![feature(test)]
-#![deny(clippy::all, clippy::pedantic)]
+//#![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::enum_glob_use,
     clippy::many_single_char_names,
@@ -34,7 +34,7 @@ pub fn solve_part1(file_name: &str) -> usize {
     let start_pos = &find_first_pos(&grid, 'S');
     let result = dijkstra(
         start_pos,
-        |coor| get_successor(&grid, &coor, get_weigth),
+        |coor| get_successor(&grid, coor, get_weigth),
         |coor| coor == goal_pos,
     );
     //println!("{:?}", result);
@@ -64,15 +64,15 @@ pub fn solve_part2(file_name: &str) -> usize {
 fn get_successor<'a>(
     grid: &'a GridArray<char>,
     coor: &Coor2D,
-    weight_fn: fn((Coor2D, &char), (Coor2D, &char)) -> Option<(Coor2D, usize)>,
+    weight_fn: fn(&(Coor2D, &char), (Coor2D, &char)) -> Option<(Coor2D, usize)>,
 ) -> impl IntoIterator<Item = (Coor2D, usize)> + 'a {
     let curr_cell = (coor.clone(), grid.get_unchecked(coor.x, coor.y));
-    grid.neighborhood_cells(coor.x.clone(), coor.y.clone())
-        .filter_map(move |neighbor_cell| weight_fn(curr_cell.clone(), neighbor_cell))
+    grid.neighborhood_cells(coor.x, coor.y)
+        .filter_map(move |neighbor_cell| weight_fn(&curr_cell, neighbor_cell))
 }
 
 fn get_weigth(
-    curr_cell: (Coor2D, &char),
+    curr_cell: &(Coor2D, &char),
     neighbor_cell: (Coor2D, &char),
 ) -> Option<(Coor2D, usize)> {
     let (curr_cell_number, neighbor_cell_number) =
@@ -86,7 +86,7 @@ fn get_weigth(
 }
 
 fn get_weigth_reverse(
-    curr_cell: (Coor2D, &char),
+    curr_cell: &(Coor2D, &char),
     neighbor_cell: (Coor2D, &char),
 ) -> Option<(Coor2D, usize)> {
     let (curr_cell_number, neighbor_cell_number) =
@@ -108,22 +108,12 @@ fn get_value(cell: char) -> u32 {
 }
 
 fn find_first_pos(grid: &GridArray<char>, find_char: char) -> Coor2D {
-    grid.all_cells()
-        .filter(|(_, c)| **c == find_char)
-        .next()
-        .unwrap()
-        .0
+    grid.all_cells().find(|(_, c)| **c == find_char).unwrap().0
 }
 
 fn parse_grid(file_name: &str) -> GridArray<char> {
     let input = utils::file_to_string(file_name);
-    let grid = GridArray::from_newline_separated_string(
-        Topology::Bounded,
-        Neighborhood::Orthogonal,
-        &input,
-    );
-    //grid.print();
-    grid
+    GridArray::from_newline_separated_string(Topology::Bounded, Neighborhood::Orthogonal, &input)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

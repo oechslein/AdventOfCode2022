@@ -2,7 +2,7 @@
 //#![allow(dead_code)]
 //#![allow(unused_must_use)]
 #![feature(test)]
-#![deny(clippy::all, clippy::pedantic)]
+//#![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::enum_glob_use,
     clippy::many_single_char_names,
@@ -11,7 +11,6 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::unreadable_literal)]
-
 
 use std::{cmp::Ordering, fmt::Display, iter::Peekable, str::Chars};
 
@@ -32,7 +31,7 @@ pub fn solve_part1(file_name: &str) -> usize {
     parse_pairs(file_name)
         .into_iter()
         .enumerate()
-        .filter(|(_, (packet1, packet2))| packet1.cmp(&packet2) == Ordering::Less)
+        .filter(|(_, (packet1, packet2))| packet1.cmp(packet2) == Ordering::Less)
         .map(|(i, _)| i + 1)
         .sum()
 }
@@ -97,7 +96,7 @@ impl Ord for PacketContent {
             (PacketContent::Number(n1), PacketContent::Number(n2)) => n1.cmp(n2),
             (PacketContent::List(l1), PacketContent::List(l2)) => {
                 for (item1, item2) in l1.iter().zip(l2.iter()) {
-                    match item1.cmp(&item2) {
+                    match item1.cmp(item2) {
                         Ordering::Equal => {}
                         Ordering::Greater => {
                             return Ordering::Greater;
@@ -118,14 +117,14 @@ impl Ord for PacketContent {
 impl Display for PacketContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PacketContent::Number(n) => write!(f, "{}", n),
+            PacketContent::Number(n) => write!(f, "{n}"),
             PacketContent::List(l) => {
                 write!(f, "[")?;
                 for (i, item) in l.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}", item)?;
+                    write!(f, "{item}")?;
                 }
                 write!(f, "]")
             }

@@ -12,7 +12,6 @@
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::unreadable_literal)]
 
-
 use std::{collections::HashSet, fmt::Display};
 
 use grid::{
@@ -21,8 +20,8 @@ use grid::{
 };
 use itertools::Itertools;
 
-use gcollections::ops::*;
-use interval::interval_set::*;
+use gcollections::ops::{Bounded, Contains, Empty, Intersection, Union};
+use interval::interval_set::{IntervalSet, ToIntervalSet};
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2
@@ -45,18 +44,18 @@ pub fn solve_part1(file_name: &str, row: isize) -> usize {
     //println!("");
 
     for (_index, (sensor, beacon)) in input.iter().enumerate() {
-        let max_manhattan_distance = sensor.manhattan_distance(&beacon);
+        let max_manhattan_distance = sensor.manhattan_distance(beacon);
 
         // can this sensor / beacon combination influence the row?
         // row must be in reach of sensor + (distance between sensor and beacon)
         let sensor_row_distance = sensor.y - row;
-        if sensor_row_distance.abs() > max_manhattan_distance as isize {
+        if sensor_row_distance.abs() > max_manhattan_distance.try_into().unwrap() {
             continue;
         }
 
         // not all neighbors are relevant, only those that match row
         for neighboor in
-            get_all_neighbors_within_for_row(&grid, &sensor, max_manhattan_distance, row)
+            get_all_neighbors_within_for_row(&grid, sensor, max_manhattan_distance, row)
         {
             if grid.get(&neighboor).is_none() || grid.get(&neighboor) == Some(&'.') {
                 grid.set(neighboor, '#');
@@ -68,7 +67,7 @@ pub fn solve_part1(file_name: &str, row: isize) -> usize {
 
     grid.all_cells()
         .filter(|(coor, _)| coor.y == row)
-        .filter(|(_, ch)| ch == &&'#')
+        .filter(|(_, ch)| ch == &Some(&'#'))
         .count()
 }
 
@@ -79,7 +78,7 @@ pub fn solve_part2(file_name: &str, max_x: isize) -> isize {
     for row in (0..=max_x).rev() {
         let mut interval = Vec::new().to_interval_set();
         for (_index, (sensor, beacon)) in input.iter().enumerate() {
-            interval = interval.union(&sensor_beacon_row_interval(sensor, beacon, row as isize));
+            interval = interval.union(&sensor_beacon_row_interval(sensor, beacon, row));
         }
 
         let intersect = interval.intersection(&full_interval);
@@ -99,7 +98,7 @@ fn sensor_beacon_row_interval(
     beacon: &Coor2DMut<isize>,
     row: isize,
 ) -> IntervalSet<isize> {
-    let radius = sensor.manhattan_distance(beacon) as isize;
+    let radius: isize = sensor.manhattan_distance(beacon).try_into().unwrap();
     let offset = radius - (sensor.y - row).abs();
     if offset < 0 {
         IntervalSet::empty()
@@ -110,7 +109,7 @@ fn sensor_beacon_row_interval(
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn create_grid(input: &Vec<(Coor2DMut<isize>, Coor2DMut<isize>)>) -> GridHashMap<char> {
+fn create_grid(input: &[(Coor2DMut<isize>, Coor2DMut<isize>)]) -> GridHashMap<char> {
     let mut grid: GridHashMap<char> = GridHashMapBuilder::default()
         .neighborhood(Neighborhood::Orthogonal)
         .build()
@@ -136,7 +135,7 @@ where
                 .replace(": closest beacon is at x=", ",")
                 .replace(", y=", ",");
             let (sensor_x, sensor_y, beacon_x, beacon_y) = line
-                .split(",")
+                .split(',')
                 .map(utils::str_to::<T>)
                 .collect_tuple()
                 .unwrap();

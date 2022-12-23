@@ -61,13 +61,13 @@ impl MonkeyGame {
     }
 
     fn solve(&mut self) -> usize {
-        for _round in 1..=self.rounds {
+        for round in 1..=self.rounds {
             (0..self.monkey_vec.len()).for_each(|i| self.do_round_for_monkey(i));
 
             if DEBUG_PRINT {
                 println!(
                     "After round {}, the monkeys are holding items with these worry levels:",
-                    _round
+                    round
                 );
                 for (monkey_index, monkey) in self.monkey_vec.iter().enumerate() {
                     println!(
@@ -139,8 +139,8 @@ impl Monkey {
         result % product_of_divisible
     }
 
-    fn new(money: itertools::Chunk<impl Iterator<Item = String>>) -> Monkey {
-        let monkey = money.skip(1).take(5).collect_vec();
+    fn new(monkey: itertools::Chunk<impl Iterator<Item = String>>) -> Monkey {
+        let monkey = monkey.skip(1).take(5).collect_vec();
         let starting_items = monkey[0]
             .replace("  Starting items: ", "")
             .split(", ")
@@ -162,8 +162,8 @@ impl Monkey {
             .unwrap();
         Monkey {
             items: starting_items,
-            op: op,
-            divisible_by: divisible_by,
+            op,
+            divisible_by,
             monkey_index_true: monkey_true,
             monkey_index_false: monkey_false,
             item_inspection_count: 0,
@@ -226,12 +226,12 @@ mod tests {
 
     #[test]
     fn test2() {
-        assert_eq!(solve_part2("test.txt"), 2713310158);
+        assert_eq!(solve_part2("test.txt"), 2_713_310_158);
     }
 
     #[test]
     fn verify2() {
-        assert_eq!(solve_part2("input.txt"), 17408399184);
+        assert_eq!(solve_part2("input.txt"), 17_408_399_184);
     }
 
     #[bench]

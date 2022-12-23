@@ -2,7 +2,7 @@
 //#![allow(dead_code)]
 //#![allow(unused_must_use)]
 #![feature(test)]
-#![deny(clippy::all, clippy::pedantic)]
+//#![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::enum_glob_use,
     clippy::many_single_char_names,
@@ -11,7 +11,6 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::unreadable_literal)]
-
 
 use itertools::Itertools;
 
@@ -32,7 +31,7 @@ enum Op {
 }
 
 struct Register {
-    _vec: Vec<isize>,
+    vec: Vec<isize>,
 }
 
 const CYCLE_LENGTH: usize = 3;
@@ -40,22 +39,22 @@ const CYCLE_LENGTH: usize = 3;
 impl Register {
     fn new(start_value: isize) -> Self {
         Self {
-            _vec: vec![start_value; CYCLE_LENGTH],
+            vec: vec![start_value; CYCLE_LENGTH],
         }
     }
 
     fn get(&self) -> isize {
-        *self._vec.last().unwrap()
+        *self.vec.last().unwrap()
     }
 
     fn add(&mut self, value: isize) {
-        self._vec[0] += value;
+        self.vec[0] += value;
     }
 
     fn shift(&mut self) {
-        let first_value = self._vec[0];
-        self._vec.rotate_right(1);
-        self._vec[0] = first_value;
+        let first_value = self.vec[0];
+        self.vec.rotate_right(1);
+        self.vec[0] = first_value;
     }
 }
 
@@ -118,17 +117,17 @@ pub fn solve_part2(file_name: &str) -> String {
         .into_iter()
         .chunks(CRT_WIDTH)
         .into_iter()
-        .map(|x| x.collect::<String>())
+        .map(std::iter::Iterator::collect::<String>)
         .join("\n");
     if cfg!(not(test)) {
-        println!("{}", _result);
+        println!("{_result}");
     }
     _result
 }
 
 fn get_pixel(cycle: usize, reg_x: &Register) -> char {
     let col = (cycle as isize - 1) % 40;
-    let sprint_x = reg_x.get() as isize;
+    let sprint_x = reg_x.get();
     if (col == sprint_x) || (col == sprint_x + 1) || (col == sprint_x - 1) {
         '#'
     } else {
@@ -142,8 +141,7 @@ fn line_to_op(line: String) -> Op {
     } else {
         let num = line
             .split_whitespace()
-            .skip(1)
-            .next()
+            .nth(1)
             .unwrap()
             .parse::<isize>()
             .unwrap();

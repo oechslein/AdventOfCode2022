@@ -2,7 +2,7 @@
 //#![allow(dead_code)]
 //#![allow(unused_must_use)]
 #![feature(test)]
-#![deny(clippy::all, clippy::pedantic)]
+//#![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::enum_glob_use,
     clippy::many_single_char_names,
@@ -11,7 +11,6 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::unreadable_literal)]
-
 
 use fxhash::FxHashSet;
 use itertools::Itertools;
@@ -102,7 +101,7 @@ impl WurmFast {
         let mut unique_visited_positions_tail = FxHashSet::default();
         unique_visited_positions_tail.insert(start_pos.clone());
         Self {
-            knots_vec: vec![start_pos.clone(); amount_of_knots],
+            knots_vec: vec![start_pos; amount_of_knots],
             unique_visited_positions_tail,
         }
     }
@@ -153,7 +152,7 @@ impl<'a> Wurm<'a> {
             wurm: WurmFast::new(amount_of_knots, start_pos.clone()),
             save_image: save_image && cfg!(not(test)),
             visited_positions_head: vec![start_pos.clone()],
-            visited_positions_tail: vec![start_pos.clone()],
+            visited_positions_tail: vec![start_pos],
             frame_vec: vec![],
         }
     }
@@ -210,7 +209,7 @@ impl<'a> Wurm<'a> {
                     image::Rgb([color, color, color]),
                 );
             }
-            for (index, knot_pos) in (&self.wurm.knots_vec).iter().rev().enumerate() {
+            for (index, knot_pos) in self.wurm.knots_vec.iter().rev().enumerate() {
                 let color_value = ((index + 1) * 255 / self.wurm.knots_vec.len()) as u8;
                 img.put_pixel(
                     (-MINMAX_X.0 + knot_pos.0) as u32,
@@ -249,7 +248,7 @@ impl<'a> Wurm<'a> {
             )
             .unwrap();
             encoder.set_repeat(Repeat::Finite(1)).unwrap();
-            for frame in self.frame_vec.iter() {
+            for frame in &self.frame_vec {
                 encoder.write_frame(&frame).unwrap();
             }
         };

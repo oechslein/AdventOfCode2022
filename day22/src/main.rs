@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #![allow(unused_must_use)]
 #![feature(test)]
-#![deny(clippy::all, clippy::pedantic)]
+//#![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::enum_glob_use,
     clippy::many_single_char_names,
@@ -11,7 +11,6 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::unreadable_literal)]
-
 
 use grid::{
     grid_array::{GridArray, GridArrayBuilder},
@@ -39,7 +38,7 @@ pub fn solve_part1(file_name: &str) -> usize {
     let (grid, path) = parse(file_name);
     let mut turtle = Turtle::new(grid);
 
-    for (command, amount) in path.iter() {
+    for (command, amount) in &path {
         turtle.apply_command(command);
         for _index in 0..*amount {
             turtle.move_forward();
@@ -53,7 +52,7 @@ pub fn solve_part2(file_name: &str, _is_input: bool) -> usize {
     let (grid, path) = parse(file_name);
     let mut turtle = Turtle::new(grid);
 
-    for (command, amount) in path.iter() {
+    for (command, amount) in &path {
         turtle.apply_command(command);
         for _index in 0..*amount {
             turtle.move_forward_part2();
@@ -254,16 +253,15 @@ impl Turtle {
         // I'm lazy just search the upper left coordinate
         let new_grid_side_upper_left = (0..self.grid.get_width())
             .cartesian_product(0..self.grid.get_height())
-            .filter(|(x, y)| self.get_cube_side(&Coor2D::new(*x, *y)) == Some(next_side))
-            .next()
+            .find(|(x, y)| self.get_cube_side(&Coor2D::new(*x, *y)) == Some(next_side))
             .unwrap();
 
         match (self.curr_dir, rotation) {
             (_, 0) => {
                 // no rotation just go ahead
                 // rotating by 0 coming from west (if direction is east) ...
-                next_pos.x = next_pos.x;
-                next_pos.y = next_pos.y;
+                //next_pos.x = next_pos.x;
+                //next_pos.y = next_pos.y;
             }
             (Direction::East, -90) => {
                 // cube_index_x must be self.get_cube_width()-1
@@ -273,7 +271,7 @@ impl Turtle {
                 // => new_cube_index_x = cube_index_y
                 // => new_cube_index_y = 0
                 next_pos.x = new_grid_side_upper_left.0 + cube_index_y;
-                next_pos.y = new_grid_side_upper_left.1 + 0;
+                next_pos.y = new_grid_side_upper_left.1;
                 assert_eq!(next_pos.x % self.get_cube_width(), cube_index_y);
                 assert_eq!(next_pos.y % self.get_cube_width(), 0);
             }

@@ -12,7 +12,6 @@
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::unreadable_literal)]
 
-
 use fxhash::FxHashSet;
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -41,7 +40,7 @@ pub fn solve_part2(file_name: &str) -> usize {
     let trapped_holes = get_all_trapped_holes(&holes, &cubes, minmax);
 
     let mut reachable_faces = 0;
-    for (cube_x, cube_y, cube_z) in cubes.iter() {
+    for (cube_x, cube_y, cube_z) in &cubes {
         for (diff_x, diff_y, diff_z) in diff_iter() {
             let (x, y, z) = (cube_x + diff_x, cube_y + diff_y, cube_z + diff_z);
             if !trapped_holes.contains(&(x, y, z)) && !cubes.contains(&(x, y, z)) {
@@ -108,7 +107,7 @@ fn is_trapped(
         visited_holes.insert(hole);
     }
 
-    return true;
+    true
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -124,10 +123,8 @@ fn count_unconnected_faces(cubes: &FxHashSet<(isize, isize, isize)>) -> usize {
     for (cube_x, cube_y, cube_z) in cubes.iter() {
         for (diff_x, diff_y, diff_z) in diff_iter() {
             let (x, y, z) = (cube_x + diff_x, cube_y + diff_y, cube_z + diff_z);
-            if (x, y, z) != (*cube_x, *cube_y, *cube_z) {
-                if !cubes.contains(&(x, y, z)) {
-                    unconnected_faces += 1;
-                }
+            if (x, y, z) != (*cube_x, *cube_y, *cube_z) && !cubes.contains(&(x, y, z)) {
+                unconnected_faces += 1;
             }
         }
     }

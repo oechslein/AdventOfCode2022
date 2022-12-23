@@ -12,7 +12,6 @@
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::unreadable_literal)]
 
-
 //#![feature(generators, generator_trait)]
 //#![feature(drain_filter)]
 //#![feature(const_option)]

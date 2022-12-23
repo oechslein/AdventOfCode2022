@@ -115,7 +115,7 @@ impl TunnelSystem {
         valves
             .iter()
             .filter(|(_, v)| v.flow_rate > 0)
-            .map(|(k, _)| k.clone())
+            .map(|(k, _)| *k)
             .collect_vec()
     }
 
@@ -151,13 +151,13 @@ impl TunnelSystem {
     fn _create_i_sized_splits(&self, i: usize) -> Vec<(Vec<ValveId>, Vec<ValveId>)> {
         self.valves_with_flow
             .iter()
-            .cloned()
+            .copied()
             .combinations(i)
             .map(move |valve_set_1| {
                 let valve_set_2 = self
                     .valves_with_flow
                     .iter()
-                    .cloned()
+                    .copied()
                     .filter(|v| !valve_set_1.contains(v))
                     .collect_vec();
                 (valve_set_1, valve_set_2)
@@ -171,11 +171,9 @@ impl TunnelSystem {
             time: 0,
             pressure: 0,
             flow: 0,
-            remaining: remaining,
+            remaining,
         };
-        start_node
-            .get_max_pressure_rec(&self.valve_to_valve_distances, &self.valves, self.limit)
-            .unwrap()
+        start_node.get_max_pressure_rec(&self.valve_to_valve_distances, &self.valves, self.limit)
     }
 }
 
@@ -194,7 +192,7 @@ impl Node {
         valve_shorted_pathes: &DistanceHashMap,
         valves: &ValveIdMap,
         limit: usize,
-    ) -> Option<usize> {
+    ) -> usize {
         let pressure_at_end = self.pressure + (limit - self.time) * self.flow;
         let max_pressure_rec = self
             .remaining
@@ -208,7 +206,7 @@ impl Node {
                 )
             })
             .max();
-        Some(pressure_at_end.max(max_pressure_rec.unwrap_or(0)))
+        pressure_at_end.max(max_pressure_rec.unwrap_or(0))
     }
 
     fn get_max_pressure_rec_for_tunnel(
@@ -226,17 +224,17 @@ impl Node {
             let new_remaining = self
                 .remaining
                 .iter()
-                .cloned()
+                .copied()
                 .filter(|v| *v != new_tunnel)
                 .collect_vec();
             let new_node = Node {
-                tunnel: new_tunnel.clone(),
+                tunnel: new_tunnel,
                 time: self.time + needed_minutes,
                 pressure: self.pressure + needed_minutes * self.flow,
                 flow: self.flow + valves[&new_tunnel].flow_rate,
                 remaining: new_remaining,
             };
-            new_node.get_max_pressure_rec(valve_shorted_pathes, valves, limit)
+            Some(new_node.get_max_pressure_rec(valve_shorted_pathes, valves, limit))
         }
     }
 }
@@ -257,14 +255,14 @@ fn parse(file_name: &str) -> ValveIdMap {
         let flow_rate = flow_rate.parse::<usize>().unwrap();
         let edges: Vec<usize> = edges
             .split(", ")
-            .map(|valve| Valve::valve_string_to_number(valve))
+            .map(Valve::valve_string_to_number)
             .collect_vec();
         let id = Valve::valve_string_to_number(node);
         valves.insert(
             id,
             Valve {
                 id,
-                flow_rate: flow_rate,
+                flow_rate,
                 tunnels: edges,
             },
         );

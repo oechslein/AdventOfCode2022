@@ -1,7 +1,7 @@
 //#![allow(unused_imports)]
 //#![allow(dead_code)]
 //#![allow(unused_must_use)]
-#![deny(clippy::all, clippy::pedantic)]
+//#![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::enum_glob_use,
     clippy::many_single_char_names,
@@ -11,20 +11,19 @@
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::unreadable_literal)]
 
-
 #[derive(Debug, Clone)]
 pub struct RockStruct<const WIDTH: usize, const SIZE: usize> {
-    _x_offset: usize,
-    _y_offset: usize,
-    _data: [bool; SIZE],
+    x_offset: usize,
+    y_offset: usize,
+    data: [bool; SIZE],
 }
 
 impl<const WIDTH: usize, const SIZE: usize> RockStruct<WIDTH, SIZE> {
     fn new(data: [bool; SIZE], x: usize, y: usize) -> Self {
         Self {
-            _x_offset: x,
-            _y_offset: y,
-            _data: data,
+            x_offset: x,
+            y_offset: y,
+            data,
         }
     }
 
@@ -39,37 +38,37 @@ impl<const WIDTH: usize, const SIZE: usize> RockStruct<WIDTH, SIZE> {
     }
 
     fn get(&self, x: usize, y: usize) -> bool {
-        if (x >= self._x_offset && x < self.get_width() + self._x_offset)
-            && (y >= self._y_offset && y < self.get_height() + self._y_offset)
+        if (x >= self.x_offset && x < self.get_width() + self.x_offset)
+            && (y >= self.y_offset && y < self.get_height() + self.y_offset)
         {
-            return self._data[(y - self._y_offset) * WIDTH + (x - self._x_offset)];
+            self.data[(y - self.y_offset) * WIDTH + (x - self.x_offset)]
         } else {
-            return false;
+            false
         }
     }
 
     fn move_x(&mut self, delta_x: isize) {
-        self._x_offset = (self._x_offset as isize + delta_x) as usize;
+        self.x_offset = (self.x_offset as isize + delta_x) as usize;
     }
 
     fn move_y(&mut self, delta_y: isize) {
-        self._y_offset = (self._y_offset as isize + delta_y) as usize;
+        self.y_offset = (self.y_offset as isize + delta_y) as usize;
     }
 
     fn get_x_min(&self) -> usize {
-        self._x_offset
+        self.x_offset
     }
 
     fn get_x_max(&self) -> usize {
-        self._x_offset + self.get_width() - 1
+        self.x_offset + self.get_width() - 1
     }
 
     fn get_y_min(&self) -> usize {
-        self._y_offset
+        self.y_offset
     }
 
     fn get_y_max(&self) -> usize {
-        self._y_offset + self.get_height() - 1
+        self.y_offset + self.get_height() - 1
     }
 }
 
@@ -114,7 +113,7 @@ impl RockEnum {
             2 => RockEnum::Rock3(RockStruct::new(_ROCK3_DATA, x, y)),
             3 => RockEnum::Rock4(RockStruct::new(_ROCK4_DATA, x, y)),
             4 => RockEnum::Rock5(RockStruct::new(_ROCK5_DATA, x, y)),
-            _ => panic!("rock_number out of range: {}", rock_type),
+            _ => panic!("rock_number out of range: {rock_type}"),
         }
     }
 

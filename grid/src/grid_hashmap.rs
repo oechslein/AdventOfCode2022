@@ -2,7 +2,7 @@
 
 use fxhash::FxHashMap;
 
-use crate::grid_types::{Coor2DMut};
+use crate::grid_types::Coor2DMut;
 
 use super::grid_iteration;
 use super::grid_types::Neighborhood;

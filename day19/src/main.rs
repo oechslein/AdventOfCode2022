@@ -2,7 +2,7 @@
 //#![allow(dead_code)]
 //#![allow(unused_must_use)]
 #![feature(test)]
-#![deny(clippy::all, clippy::pedantic)]
+//#![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::enum_glob_use,
     clippy::many_single_char_names,
@@ -64,8 +64,6 @@ fn get_max_geodes(limit: UInt, blueprint: &Blueprint) -> UInt {
         if !visited_nodes.contains(&node) {
             visited_nodes.insert(node.clone());
             open_nodes.push_back(node);
-        } else {
-            //println!("Already visited: {:?}", new_node);
         }
     };
 
@@ -137,9 +135,7 @@ fn get_max_geodes(limit: UInt, blueprint: &Blueprint) -> UInt {
         .into_iter()
         .max_by_key(|node| node.elements[Element::Geode as usize])
         .unwrap();
-    let max_geodes = max_node.elements[Element::Geode as usize];
-    //println!("Max: {}, Max node: {:?}", max_geodes, max_node);
-    max_geodes
+    max_node.elements[Element::Geode as usize]
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -210,7 +206,7 @@ impl Node {
                 return false;
             }
         }
-        return true;
+        true
     }
 }
 
@@ -245,7 +241,7 @@ fn parse_blueprints(file_name: &str) -> Vec<Blueprint> {
         let mut blueprint = vec![];
         let start_pos = line.find(": ").unwrap();
         let line = line
-            .replace(".", "")
+            .replace('.', "")
             .replace(" robot costs ", "")
             .replace("ore", "")
             .replace("clay", "")

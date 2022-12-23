@@ -2,7 +2,7 @@
 //#![allow(dead_code)]
 //#![allow(unused_must_use)]
 #![feature(test)]
-#![deny(clippy::all, clippy::pedantic)]
+//#![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::enum_glob_use,
     clippy::many_single_char_names,
@@ -11,7 +11,6 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::unreadable_literal)]
-
 
 use std::{collections::HashSet, fs::File};
 
@@ -37,14 +36,14 @@ pub fn solve_part1(file_name: &str) -> usize {
     let (mut grid, rocks, max_rock_y) = parse(file_name, &sand_entry, None);
     //print_grid(&grid);
 
-    let filename = create_image_filename(file_name, &sand_entry, 1);
+    let file_name = create_image_filename(file_name, &sand_entry, 1);
     let sand_count = simulate_sands(
         &mut grid,
         rocks,
         &sand_entry,
         Some(max_rock_y),
         None,
-        filename.as_str(),
+        file_name.as_str(),
     );
     //print_grid(&grid);
 
@@ -57,14 +56,14 @@ pub fn solve_part2(file_name: &str) -> usize {
     let (mut grid, rocks, max_rock_y) = parse(file_name, &sand_entry, Some(floor_y_diff));
     //print_grid(&grid);
 
-    let filename = create_image_filename(file_name, &sand_entry, 2);
+    let file_name = create_image_filename(file_name, &sand_entry, 2);
     let sand_count = simulate_sands(
         &mut grid,
         rocks,
         &sand_entry,
         None,
         Some(floor_y_diff + max_rock_y),
-        filename.as_str(),
+        file_name.as_str(),
     );
     //print_grid(&grid);
 
@@ -104,16 +103,16 @@ fn simulate_sands(
     save_grid(&mut encoder, grid, &mut grid_vec);
     let mut sand_count = 0;
     loop {
-        let sandpos = let_sand_fall(
+        let sand_pos = let_sand_fall(
             grid,
-            &sand_entry,
+            sand_entry,
             &solid_coors_set,
             max_rock_y,
             floor_y,
             &mut grid_vec,
             &mut encoder,
         );
-        match sandpos {
+        match sand_pos {
             None => break,
             Some(sand_pos) if sand_pos == *sand_entry => {
                 sand_count += 1;
@@ -131,7 +130,7 @@ fn simulate_sands(
     sand_count
 }
 
-fn let_sand_fall<'a>(
+fn let_sand_fall(
     grid: &mut GridArray<char>,
     start_coor: &Coor2D,
     solid_coors_set: &HashSet<Coor2D>,
@@ -141,12 +140,10 @@ fn let_sand_fall<'a>(
     encoder: &mut Encoder<&mut File>,
 ) -> Option<Coor2D> {
     let no_solid = |coor: Coor2D| {
-        if solid_coors_set.contains(&coor) {
-            return None;
-        } else if floor_y.is_some() && coor.y as usize >= floor_y.unwrap() {
-            return None;
+        if solid_coors_set.contains(&coor) || (floor_y.is_some() && coor.y >= floor_y.unwrap()) {
+            None
         } else {
-            return Some(coor);
+            Some(coor)
         }
     };
 
@@ -160,7 +157,7 @@ fn let_sand_fall<'a>(
     let mut curr_coor = start_coor.clone();
     loop {
         let next_coor = curr_coor.clone() + Coor2D::new(0, 1);
-        if max_rock_y.is_some() && next_coor.y as usize > max_rock_y.unwrap() {
+        if max_rock_y.is_some() && next_coor.y > max_rock_y.unwrap() {
             return None;
         }
         if let Some(next_coor) = no_solid(next_coor.clone()) {
@@ -205,7 +202,7 @@ fn get_minmax_nonempty(grid: &GridArray<char>) -> (Coor2D, Coor2D) {
 fn create_image_filename(file_name: &str, sand_entry: &Coor2D, part_number: usize) -> String {
     format!(
         r"C:\temp\{}_{}x{}_part{}.gif",
-        file_name.to_string().replace("/", "_"),
+        file_name.to_string().replace('/', "_"),
         sand_entry.x,
         sand_entry.y,
         part_number
@@ -222,9 +219,9 @@ fn parse(
         .iter()
         .fold(
             Coor2D::new(usize::MIN, usize::MIN),
-            |acc: Coor2D, e: &Coor2D| acc.max(&e),
+            |acc: Coor2D, e: &Coor2D| acc.max(e),
         )
-        .max(&sand_entry);
+        .max(sand_entry);
     let mut grid: GridArray<char> = GridArrayBuilder::default()
         .topology(Topology::Bounded)
         .neighborhood(Neighborhood::Square)
@@ -232,9 +229,9 @@ fn parse(
         .height(max_coor.y + floor_y_diff.unwrap_or(0) + 1)
         .build()
         .unwrap();
-    rocks.iter().for_each(|coor| {
+    for coor in &rocks {
         grid.set(coor.x, coor.y, '#');
-    });
+    }
     grid.set(sand_entry.x, sand_entry.y, '+');
     (grid, rocks, max_coor.y)
 }
@@ -269,10 +266,10 @@ fn print_grid(grid: &GridArray<char>) {
     for y in min_coor.y..=max_coor.y {
         for x in min_coor.x..=max_coor.x {
             let ch = grid.get_unchecked(x, y);
-            if ch != &'\0' {
-                print!("{}", ch);
-            } else {
+            if ch == &'\0' {
                 print!(".");
+            } else {
+                print!("{ch}");
             }
         }
         println!();
