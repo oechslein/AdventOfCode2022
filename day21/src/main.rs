@@ -12,10 +12,7 @@
 #![allow(clippy::doc_markdown)]
 #![allow(clippy::unreadable_literal)]
 
-
-use std::{
-    str::FromStr,
-};
+use std::str::FromStr;
 
 use derive_more::{IsVariant, Unwrap};
 use fxhash::FxHashMap;
@@ -145,11 +142,12 @@ impl MonkeyRule {
         fn get_used_monkey_names(rule: &MonkeyRule) -> impl Iterator<Item = &MonkeyIndex> {
             match rule {
                 MonkeyRule::Number(_) => vec![].into_iter(),
-                MonkeyRule::Monkey(monkey_name) => vec![monkey_name].into_iter(),
-                MonkeyRule::Human(monkey_name) => vec![monkey_name].into_iter(),
+                MonkeyRule::Monkey(monkey_name) | MonkeyRule::Human(monkey_name) => {
+                    vec![monkey_name].into_iter()
+                }
                 MonkeyRule::Operation(_, rule1, rule2) => {
-                    let x = get_used_monkey_names(&rule1)
-                        .chain(get_used_monkey_names(&rule2))
+                    let x = get_used_monkey_names(rule1)
+                        .chain(get_used_monkey_names(rule2))
                         .collect_vec();
                     x.into_iter()
                 }
@@ -244,15 +242,17 @@ impl FromStr for MonkeyRule {
         ]
         .into_iter()
         .find(|op| s.contains(&op.op_name()))
-        .map(|op| {
-            let (monkey1, monkey2) = s.split_once(&op.op_name()).unwrap();
-            Ok(MonkeyRule::Operation(
-                op,
-                _create_monkey(monkey1),
-                _create_monkey(monkey2),
-            ))
-        })
-        .unwrap_or_else(|| Ok(MonkeyRule::Number(s.parse().unwrap())))
+        .map_or_else(
+            || Ok(MonkeyRule::Number(s.parse().unwrap())),
+            |op| {
+                let (monkey1, monkey2) = s.split_once(&op.op_name()).unwrap();
+                Ok(MonkeyRule::Operation(
+                    op,
+                    _create_monkey(monkey1),
+                    _create_monkey(monkey2),
+                ))
+            },
+        )
     }
 }
 
