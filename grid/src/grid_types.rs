@@ -148,6 +148,21 @@ impl Direction {
             _ => unreachable!(),
         }
     }
+
+    #[must_use]
+    /// Returns the difference vector for direction 
+    pub fn diff_coor(&self) -> Coor2DMut<isize> {
+        match self {
+            Direction::North => Coor2DMut::new(0, -1),
+            Direction::NorthEast => Coor2DMut::new(1, -1),
+            Direction::East => Coor2DMut::new(1, 0),
+            Direction::SouthEast => Coor2DMut::new(1, 1),
+            Direction::South => Coor2DMut::new(0, 1),
+            Direction::SouthWest => Coor2DMut::new(-1, 1),
+            Direction::West => Coor2DMut::new(-1, 0),
+            Direction::NorthWest => Coor2DMut::new(-1, -1),
+        }
+    }
 }
 
 /// Neighborhoods around a point. They do not contain the point itself
