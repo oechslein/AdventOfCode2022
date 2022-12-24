@@ -190,15 +190,13 @@ impl Turtle {
         }
     }
 
-    fn get_real_cube_side_helper(&self, from_side: usize, dir: Direction) -> (usize, isize) {
-        match (from_side, dir) {
-            _ => unimplemented!(),
-        }
+    fn get_real_cube_side_helper(&self, _from_side: usize, _dir: Direction) -> (usize, isize) {
+        todo!()
     }
 
     fn calc_result(&self) -> usize {
-        1000 * (self.curr_pos.y as usize + 1)
-            + 4 * (self.curr_pos.x as usize + 1)
+        1000 * (self.curr_pos.y + 1)
+            + 4 * (self.curr_pos.x + 1)
             + match self.curr_dir {
                 Direction::East => 0,
                 Direction::South => 1,
@@ -331,7 +329,7 @@ impl Turtle {
                 // => new_cube_index_x = self.get_cube_width()-cube_index_y
                 // => new_cube_index_y = 0
                 next_pos.x = new_grid_side_upper_left.0 + self.get_cube_width() - cube_index_y;
-                next_pos.y = new_grid_side_upper_left.1 + 0;
+                next_pos.y = new_grid_side_upper_left.1;
                 assert_eq!(
                     next_pos.x % self.get_cube_width(),
                     self.get_cube_width() - cube_index_y
@@ -381,7 +379,7 @@ impl Turtle {
                 // rotating by 90 coming from east
                 // => new_cube_index_x = 0
                 // => new_cube_index_y = self.get_cube_width()-cube_index_x
-                next_pos.x = new_grid_side_upper_left.0 + 0;
+                next_pos.x = new_grid_side_upper_left.0;
                 next_pos.y = new_grid_side_upper_left.1 + self.get_cube_width() - cube_index_x;
                 assert_eq!(next_pos.x % self.get_cube_width(), 0);
                 assert_eq!(
@@ -414,7 +412,7 @@ impl Turtle {
                 // rotating by -90 coming from east
                 // => new_cube_index_x = 0
                 // => new_cube_index_y = cube_index_x
-                next_pos.x = new_grid_side_upper_left.0 + 0;
+                next_pos.x = new_grid_side_upper_left.0;
                 next_pos.y = new_grid_side_upper_left.1 + cube_index_x;
                 assert_eq!(next_pos.x % self.get_cube_width(), 0);
                 assert_eq!(next_pos.y % self.get_cube_width(), cube_index_x);
@@ -442,7 +440,7 @@ impl Turtle {
                 // => new_cube_index_x = self.get_cube_width()-cube_index_x+1
                 // => new_cube_index_y = 0
                 next_pos.x = new_grid_side_upper_left.0 + self.get_cube_width() - cube_index_x + 1;
-                next_pos.y = new_grid_side_upper_left.1 + 0;
+                next_pos.y = new_grid_side_upper_left.1;
                 assert_eq!(
                     next_pos.x % self.get_cube_width(),
                     self.get_cube_width() - cube_index_x + 1
@@ -575,6 +573,7 @@ fn parse(file_name: &str) -> (GridArray<char>, Vec<(Command, u16)>) {
         .height(grid_vec.len())
         .build()
         .unwrap();
+    #[allow(clippy::needless_range_loop)]
     for y in 0..grid.get_height() {
         for x in 0..grid.get_width() {
             grid.set(x, y, *grid_vec[y].get(x).unwrap_or(&' '));
@@ -592,7 +591,7 @@ fn parse(file_name: &str) -> (GridArray<char>, Vec<(Command, u16)>) {
         .tuple_windows()
         .map(|(index_start, index_end)| {
             (
-                match path_str.chars().skip(*index_start).next().unwrap() {
+                match path_str.chars().nth(*index_start).unwrap() {
                     'L' => Command::Left,
                     'R' => Command::Right,
                     _ => panic!("Unknown direction"),

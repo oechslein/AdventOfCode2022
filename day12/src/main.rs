@@ -61,6 +61,7 @@ pub fn solve_part2(file_name: &str) -> usize {
 
 ////////////////////////////////////////////////////////////////////////////////////
 
+#[allow(clippy::type_complexity)]
 fn get_successor<'a>(
     grid: &'a GridArray<char>,
     coor: &Coor2D,

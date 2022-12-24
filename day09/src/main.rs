@@ -249,7 +249,7 @@ impl<'a> Wurm<'a> {
             .unwrap();
             encoder.set_repeat(Repeat::Finite(1)).unwrap();
             for frame in &self.frame_vec {
-                encoder.write_frame(&frame).unwrap();
+                encoder.write_frame(frame).unwrap();
             }
         };
     }
@@ -288,14 +288,13 @@ fn parse_direction(direction: char) -> Position {
 }
 
 #[allow(dead_code)]
-fn print_grid(pos_knots_vec: &Vec<Position>, min_pos: Position, max_pos: Position) {
+fn print_grid(pos_knots_vec: &[Position], min_pos: Position, max_pos: Position) {
     for y in min_pos.1..=max_pos.1 {
         for x in min_pos.0..=max_pos.0 {
             if let Some((index, _)) = pos_knots_vec
                 .iter()
                 .enumerate()
-                .filter(|(_, p)| **p == Position::new(x, y))
-                .next()
+                .find(|(_, p)| **p == Position::new(x, y))
             {
                 print!("{}", index);
             } else {

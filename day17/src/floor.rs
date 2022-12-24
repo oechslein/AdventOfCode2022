@@ -292,6 +292,7 @@ impl Floor {
     pub fn get_ceiling(&self) -> [usize; WIDTH] {
         let y_max = self.get_y_max();
         let mut ceiling = [0; WIDTH];
+        #[allow(clippy::needless_range_loop)]
         for x in 0..WIDTH {
             for y in (0..=y_max).rev() {
                 if self.get(x, y) {

@@ -136,7 +136,7 @@ fn let_sand_fall(
     solid_coors_set: &HashSet<Coor2D>,
     max_rock_y: Option<usize>,
     floor_y: Option<usize>,
-    grid_vec: &mut Vec<GridArray<char>>,
+    grid_vec: &mut [GridArray<char>],
     encoder: &mut Encoder<&mut File>,
 ) -> Option<Coor2D> {
     let no_solid = |coor: Coor2D| {
@@ -279,7 +279,7 @@ fn print_grid(grid: &GridArray<char>) {
 fn save_grid(
     _encoder: &mut Encoder<&mut File>,
     _grid: &GridArray<char>,
-    _grid_vec: &mut Vec<GridArray<char>>,
+    _grid_vec: &mut [GridArray<char>],
 ) {
     #[cfg(not(test))]
     {
@@ -306,9 +306,9 @@ fn save_grid(
             }
         }
 
-        let mut frame = Frame::from_indexed_pixels(frame_width, frame_height, &mut *pixels, None);
+        let mut frame = Frame::from_indexed_pixels(frame_width, frame_height, &pixels, None);
         frame.left = (min_coor.x + 10) as u16;
-        frame.top = (min_coor.y - 0) as u16;
+        frame.top = min_coor.y as u16;
         _encoder.write_frame(&frame).unwrap();
     }
 }
