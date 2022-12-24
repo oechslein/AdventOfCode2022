@@ -112,6 +112,7 @@ pub enum Topology {
 
 /// All eight directions (Orthogonal+Diagonal)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
 pub enum Direction {
     /// North
     North = 0,
