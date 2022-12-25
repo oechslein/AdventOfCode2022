@@ -1,6 +1,6 @@
-#![allow(unused_imports)]
-#![allow(dead_code)]
-#![allow(unused_must_use)]
+//#![allow(unused_imports)]
+//#![allow(dead_code)]
+//#![allow(unused_must_use)]
 #![feature(test)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
@@ -11,13 +11,10 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::doc_markdown)]
 
-use std::collections::VecDeque;
-
 use fxhash::FxHashSet;
-use grid::grid_types::Direction;
+use grid::grid_types::{Coor2DMut, Direction};
 use itertools::Itertools;
 use pathfinding::prelude::astar;
-use pathfinding::prelude::dijkstra;
 
 ////////////////////////////////////////////////////////////////////////////////////
 /// The main function prints out the results for part1 and part2
@@ -29,61 +26,65 @@ fn main() {
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-type CoorTyp = u8;
-
 pub fn solve_part1(file_name: &str) -> usize {
     let mut valley = parse(file_name);
-    (valley.x, valley.y) = valley.start_pos();
-    //valley.print();
-    //println!();
+    valley.coor = valley.start_pos();
 
-    let (goal_valley, steps_to_goal) = valley.find_path(valley.goal_pos());
-    assert_eq!((goal_valley.x, goal_valley.y), valley.goal_pos());
+    let (goal_valley, steps_to_goal) = valley.find_path(&valley.goal_pos());
+    debug_assert_eq!(goal_valley.coor, valley.goal_pos());
 
     steps_to_goal
 }
 
 pub fn solve_part2(file_name: &str) -> usize {
     let mut valley = parse(file_name);
-    (valley.x, valley.y) = valley.start_pos();
-    //valley.print();
-    //println!();
+    valley.coor = valley.start_pos();
 
     // way to goal
-    let (goal_valley, steps_to_goal) = valley.find_path(valley.goal_pos());
-    assert_eq!((goal_valley.x, goal_valley.y), valley.goal_pos());
+    let (goal_valley, steps_to_goal) = valley.find_path(&valley.goal_pos());
+    debug_assert_eq!(goal_valley.coor, valley.goal_pos());
 
     // way back to start
-    let (start_valley, steps_to_start) = goal_valley.find_path(valley.start_pos());
-    assert_eq!((start_valley.x, start_valley.y), valley.start_pos());
+    let (start_valley, steps_to_start) = goal_valley.find_path(&valley.start_pos());
+    debug_assert_eq!(start_valley.coor, valley.start_pos());
 
     // way back to goal
-    let (goal_valley, steps_to_goal2) = start_valley.find_path(valley.goal_pos());
-    assert_eq!((goal_valley.x, goal_valley.y), valley.goal_pos());
+    let (goal_valley, steps_to_goal2) = start_valley.find_path(&valley.goal_pos());
+    debug_assert_eq!(goal_valley.coor, valley.goal_pos());
 
     steps_to_goal + steps_to_start + steps_to_goal2
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 
+type CoorTyp = u8;
+type Coor = Coor2DMut<CoorTyp>;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct Blizzard {
-    x: CoorTyp,
-    y: CoorTyp,
+    coor: Coor,
     dir: Direction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct Valley {
-    x: CoorTyp,
-    y: CoorTyp,
+    coor: Coor,
     width: CoorTyp,
     height: CoorTyp,
     blizzards: Vec<Blizzard>,
 }
 
+#[must_use]
+fn to_isize_coor(coor: &Coor) -> Coor2DMut<isize> {
+    Coor2DMut::new(coor.x.try_into().unwrap(), coor.y.try_into().unwrap())
+}
+
+fn from_isize_coor(coor: &Coor2DMut<isize>) -> Coor {
+    Coor::new(coor.x.try_into().unwrap(), coor.y.try_into().unwrap())
+}
+
 impl Valley {
-    fn find_path(&self, goal_pos: (CoorTyp, CoorTyp)) -> (Valley, usize) {
+    fn find_path(&self, goal_pos: &Coor) -> (Valley, usize) {
         let result = astar(
             self,
             |curr_valley| {
@@ -94,117 +95,98 @@ impl Valley {
                     .collect_vec()
             },
             |valley| valley.min_steps_to(goal_pos),
-            |valley| (valley.x, valley.y) == goal_pos,
+            |valley| valley.coor == *goal_pos,
         );
-        //println!("{result:?}");
-        let (path, steps_to_goal) = result.expect("no path found");
+        let (mut path, steps_to_goal) = result.expect("no path found");
 
-        let final_valley = path.last().unwrap().clone();
-        assert_eq!((final_valley.x, final_valley.y), goal_pos);
+        let final_valley = path.pop().unwrap();
+        debug_assert_eq!(final_valley.coor, *goal_pos);
         (final_valley, steps_to_goal)
     }
 
     // move all blizzards and return for all possible new positions a clone of the valley with that position
     fn possible_valleys(&mut self) -> impl Iterator<Item = Valley> + '_ {
-        self.go_blizzards().map(|(x, y)| {
+        self.go_blizzards().map(|coor| {
             let mut new_valley = self.clone();
-            new_valley.x = x;
-            new_valley.y = y;
+            new_valley.coor = coor;
             new_valley
         })
     }
 
     // moves all blizzards are returns all new possible positions (including the current one)
-    fn go_blizzards(&mut self) -> impl Iterator<Item = (CoorTyp, CoorTyp)> {
+    fn go_blizzards(&mut self) -> impl Iterator<Item = Coor> {
         let mut possible_next_positions = self._get_all_possible_next_positions();
 
         let width: isize = self.width.try_into().unwrap();
         let height: isize = self.height.try_into().unwrap();
         for blizzard in &mut self.blizzards {
-            let diff = blizzard.dir.diff_coor();
-            let mut new_x: isize = isize::try_from(blizzard.x).unwrap() + diff.x;
-            let mut new_y: isize = isize::try_from(blizzard.y).unwrap() + diff.y;
-            if new_x <= 0 {
-                new_x = width - 2;
-            } else if new_x >= width - 1 {
-                new_x = 1;
+            let mut new_coor = to_isize_coor(&blizzard.coor) + blizzard.dir.diff_coor();
+            if new_coor.x <= 0 {
+                new_coor.x = width - 2;
+            } else if new_coor.x >= width - 1 {
+                new_coor.x = 1;
             }
-            if new_y <= 0 {
-                new_y = height - 2;
-            } else if new_y >= height - 1 {
-                new_y = 1;
+            if new_coor.y <= 0 {
+                new_coor.y = height - 2;
+            } else if new_coor.y >= height - 1 {
+                new_coor.y = 1;
             }
-            let new_x = new_x.try_into().unwrap();
-            let new_y = new_y.try_into().unwrap();
-            possible_next_positions.remove(&(new_x, new_y));
-            blizzard.x = new_x;
-            blizzard.y = new_y;
+            let new_coor = from_isize_coor(&new_coor);
+            possible_next_positions.remove(&new_coor);
+            blizzard.coor = new_coor;
         }
 
         possible_next_positions.into_iter()
     }
 
-    fn _get_all_possible_next_positions(&self) -> FxHashSet<(CoorTyp, CoorTyp)> {
-        let mut possible_next_positions: FxHashSet<(CoorTyp, CoorTyp)> = [
+    fn _get_all_possible_next_positions(&self) -> FxHashSet<Coor> {
+        let mut possible_next_positions: FxHashSet<Coor> = [
             Direction::East,
             Direction::West,
             Direction::South,
             Direction::North,
         ]
         .into_iter()
-        .map(|dir| dir.diff_coor())
-        .map(|diff| {
-            (
-                isize::try_from(self.x).unwrap() + diff.x,
-                isize::try_from(self.y).unwrap() + diff.y,
-            )
-        })
-        .filter(|(new_x, new_y)| (*new_x >= 0 && *new_y >= 0)) // filter our negatives
-        .map(|(new_x, new_y)| {
-            // now convert to unsigned
-            (
-                CoorTyp::try_from(new_x).unwrap(),
-                CoorTyp::try_from(new_y).unwrap(),
-            )
-        })
-        .filter(|(new_x, new_y)| {
-            // now filter border but not goal and start
-            (*new_x > 0 && *new_x < self.width - 1 && *new_y > 0 && *new_y < self.height - 1)
-                || (*new_x, *new_y) == self.goal_pos()
-                || (*new_x, *new_y) == self.start_pos()
-        })
+        .map(|dir| to_isize_coor(&self.coor) + dir.diff_coor())
+        .filter(|new_coor| (new_coor.x >= 0 && new_coor.y >= 0)) // filter our negatives
+        .map(|new_coor| from_isize_coor(&new_coor))
+        .filter(|new_coor| self.is_valid_pos(new_coor))
         .collect();
-        possible_next_positions.insert((self.x, self.y)); // add current position
+        possible_next_positions.insert(self.coor.clone()); // add current position in addition
         possible_next_positions
     }
 
     #[allow(clippy::unused_self)]
-    fn start_pos(&self) -> (CoorTyp, CoorTyp) {
-        (1, 0)
+    fn start_pos(&self) -> Coor {
+        Coor::new(1, 0)
     }
 
-    fn goal_pos(&self) -> (CoorTyp, CoorTyp) {
-        (self.width - 2, self.height - 1)
+    fn goal_pos(&self) -> Coor {
+        Coor::new(self.width - 2, self.height - 1)
     }
 
-    fn goal_reached(&self) -> bool {
-        (self.x, self.y) == self.goal_pos()
+    fn is_valid_pos(&self, coor: &Coor) -> bool {
+        // now filter border but not goal and start
+        (coor.x > 0 && coor.x < self.width - 1 && coor.y > 0 && coor.y < self.height - 1)
+            || *coor == self.goal_pos()
+            || *coor == self.start_pos()
     }
 
-    fn min_steps_to(&self, goal_pos: (u8, u8)) -> usize {
-        (goal_pos.0 as usize).abs_diff(self.x as usize)
-            + (goal_pos.1 as usize).abs_diff(self.y as usize)
+    fn min_steps_to(&self, goal_pos: &Coor) -> usize {
+        self.coor.manhattan_distance(goal_pos)
     }
 
+    #[allow(dead_code)]
     fn print(&self) {
         for y in 0..self.height {
             for x in 0..self.width {
+                let coor = Coor::new(x, y);
                 let all_blizzards = self
                     .blizzards
                     .iter()
-                    .filter(|b| b.x == x && b.y == y)
+                    .filter(|b| b.coor == coor)
                     .collect_vec();
-                if x == self.x && y == self.y {
+                if coor == self.coor {
                     print!("E");
                     debug_assert!(all_blizzards.is_empty());
                 } else if all_blizzards.len() == 1 {
@@ -221,9 +203,7 @@ impl Valley {
                     );
                 } else if all_blizzards.len() > 1 {
                     print!("{:x}", all_blizzards.len());
-                } else if (x, y) == self.goal_pos() || (x, y) == (1, 0) {
-                    print!(".");
-                } else if x == 0 || x == self.width - 1 || y == 0 || y == self.height - 1 {
+                } else if !self.is_valid_pos(&coor) {
                     print!("#");
                 } else {
                     print!(".");
@@ -236,59 +216,12 @@ impl Valley {
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-fn _test(mut valley: Valley) {
-    let test_vec: Vec<(isize, isize)> = vec![
-        (0, 1), // 1
-        (0, 1),
-        (0, 0),
-        (0, -1),
-        (1, 0), // 5
-        (1, 0),
-        (0, 1),
-        (-1, 0),
-        (0, -1),
-        (1, 0), // 10
-        (0, 0),
-        (0, 1),
-        (0, 1),
-        (1, 0),
-        (1, 0), // 15
-        (1, 0),
-        (0, 1),
-        (0, 1),
-    ];
-    for (index, (diff_x, diff_y)) in test_vec.into_iter().enumerate() {
-        let possible_valleys = valley.possible_valleys().collect_vec();
-        println!(
-            "{} : ({diff_x}, {diff_y}) -> {}",
-            index + 1,
-            possible_valleys.len()
-        );
-        valley.x = (isize::try_from(valley.x).unwrap() + diff_x)
-            .try_into()
-            .unwrap();
-        valley.y = (isize::try_from(valley.y).unwrap() + diff_y)
-            .try_into()
-            .unwrap();
-        valley.print();
-        println!();
-        assert!(
-            possible_valleys.contains(&valley) || valley.goal_reached(),
-            "{:?}",
-            valley._get_all_possible_next_positions()
-        );
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-
 fn parse(file_name: &str) -> Valley {
     let lines = utils::file_to_lines(file_name).collect_vec();
     let width: CoorTyp = lines[0].len().try_into().unwrap();
     let height: CoorTyp = lines.len().try_into().unwrap();
     let mut valley = Valley {
-        x: 0,
-        y: 0,
+        coor: Coor::new(0, 0),
         width,
         height,
         blizzards: Vec::new(),
@@ -305,7 +238,10 @@ fn parse(file_name: &str) -> Valley {
                 'v' => Some(Direction::South),
                 _ => panic!("Unknown char: '{c}'"),
             } {
-                valley.blizzards.push(Blizzard { x, y, dir });
+                valley.blizzards.push(Blizzard {
+                    coor: Coor::new(x, y),
+                    dir,
+                });
             }
         }
     }
@@ -323,22 +259,22 @@ mod tests {
 
     #[test]
     fn test1() {
-        assert_eq!(solve_part1("test.txt"), 18);
+        debug_assert_eq!(solve_part1("test.txt"), 18);
     }
 
     #[test]
     fn verify1() {
-        assert_eq!(solve_part1("input.txt"), 279);
+        debug_assert_eq!(solve_part1("input.txt"), 279);
     }
 
     #[test]
     fn test2() {
-        assert_eq!(solve_part2("test.txt"), 54);
+        debug_assert_eq!(solve_part2("test.txt"), 54);
     }
 
     #[test]
     fn verify2() {
-        assert_eq!(solve_part2("input.txt"), 762);
+        debug_assert_eq!(solve_part2("input.txt"), 762);
     }
 
     #[bench]
