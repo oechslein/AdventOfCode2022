@@ -1,6 +1,6 @@
-#![allow(unused_imports)]
-#![allow(dead_code)]
-#![allow(unused_must_use)]
+//#![allow(unused_imports)]
+//#![allow(dead_code)]
+//#![allow(unused_must_use)]
 #![feature(test)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
@@ -13,8 +13,6 @@
 
 use std::collections::VecDeque;
 
-use fxhash::FxHashSet;
-use grid::grid_types::Direction;
 use itertools::Itertools;
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -35,48 +33,49 @@ pub fn solve_part1(file_name: &str) -> String {
     num_to_snafu(utils::file_to_lines(file_name).map(snafu_to_num).sum())
 }
 
-fn num_to_snafu(mut num: usize) -> String {
-    let mut result = Vec::new();
+fn num_to_snafu(num: usize) -> String {
+    let mut num = num;
+    let mut result = VecDeque::new();
     while num != 0 {
-        let mut new_num = num / 5;
         let reminder = num % 5;
-        match reminder {
-            0 => result.push('0'),
-            1 => result.push('1'),
-            2 => result.push('2'),
+        num /= 5;
+        result.push_front(match reminder {
+            0 => '0',
+            1 => '1',
+            2 => '2',
             3 => {
-                result.push('=');
                 // instead of 3 we are pushing -2, so we added 5 too much, so add 1 to our new_num (that holds the next digits)
-                new_num += 1;
+                num += 1;
+                '='
             }
             4 => {
-                result.push('-');
                 // instead of 4 we are pushing -1, so we added 5 too much, so add 1 to our new_num (that holds the next digits)
-                new_num += 1;
+                num += 1;
+                '-'
             }
             _ => unreachable!(),
-        };
-        num = new_num;
+        });
     }
-
-    result.into_iter().rev().join("")
+    result.into_iter().join("")
 }
 
 #[allow(clippy::needless_pass_by_value)]
 fn snafu_to_num(snafu: String) -> usize {
-    let mut result: isize = 0;
-    for ch in snafu.chars() {
-        result = result * 5
-            + match ch {
-                '0' => 0,
-                '1' => 1,
-                '2' => 2,
-                '-' => -1,
-                '=' => -2,
-                _ => unimplemented!(),
-            };
-    }
-    result.try_into().unwrap()
+    snafu
+        .chars()
+        .fold(0, |result: isize, ch| {
+            result * 5
+                + match ch {
+                    '0' => 0,
+                    '1' => 1,
+                    '2' => 2,
+                    '-' => -1,
+                    '=' => -2,
+                    _ => unimplemented!(),
+                }
+        })
+        .try_into()
+        .unwrap()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
